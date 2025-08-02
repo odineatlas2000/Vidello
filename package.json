@@ -19,7 +19,8 @@
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
+  "dependencies": {"yt-dlp": "^1.0.0",
+
     "axios": "^1.9.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
