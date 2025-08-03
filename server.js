@@ -59,12 +59,13 @@ app.get('/api/video-info', async (req, res) => {
 
   try {
     const info = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCheckCertificate: true,
-      preferFreeFormats: true,
-      youtubeSkipDashManifest: true
-    });
+  dumpSingleJson: true,
+  noWarnings: true,
+  noCheckCertificate: true,
+  preferFreeFormats: true,
+  youtubeSkipDashManifest: true
+});
+
     res.json(info);
   } catch (err) {
     console.error('❌ yt-dlp error:', err.stderr || err.message || err);
