@@ -7,12 +7,15 @@ const path = require('path');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
 
-// Try to use yt-dlp-exec if available, otherwise fall back to ytdl-core
+// Initialize yt-dlp-exec with better configuration
 let ytdlp;
 try {
-  ytdlp = require('yt-dlp-exec');
+  const { create } = require('yt-dlp-exec');
+  // Create yt-dlp instance with custom binary path if needed
+  ytdlp = create('./yt-dlp.exe'); // Use local yt-dlp.exe
+  console.log('✅ yt-dlp-exec initialized successfully');
 } catch (error) {
-  console.log('yt-dlp-exec not found, using ytdl-core only');
+  console.log('⚠️ yt-dlp-exec not found, using ytdl-core only:', error.message);
 }
 
 // Import route handlers
