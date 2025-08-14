@@ -106,6 +106,24 @@ class YtDlpManager {
             'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           ];
           console.log('🎬 Using Vimeo headers');
+        } else if (platform === 'twitter') {
+          headers = [
+            'referer:https://x.com/',
+            'origin:https://x.com',
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'accept-language:en-US,en;q=0.9',
+            'accept-encoding:gzip, deflate, br',
+            'sec-ch-ua:"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile:?0',
+            'sec-ch-ua-platform:"Windows"',
+            'sec-fetch-dest:document',
+            'sec-fetch-mode:navigate',
+            'sec-fetch-site:none',
+            'sec-fetch-user:?1',
+            'upgrade-insecure-requests:1'
+          ];
+          console.log('🐦 Using enhanced Twitter/X headers');
         } else {
           headers = [
             'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -119,6 +137,17 @@ class YtDlpManager {
           noWarnings: true,
           preferFreeFormats: true
         };
+        
+        // Platform-specific options
+        if (platform === 'twitter') {
+          options.retries = 5;
+          options.fragmentRetries = 5;
+          options.skipUnavailableFragments = true;
+          options.ignoreErrors = false;
+          options.sleepInterval = 1;
+          options.maxSleepInterval = 5;
+          console.log('🐦 Using enhanced Twitter-specific options');
+        }
         
         if (headers.length > 0) {
           options.addHeader = headers;
@@ -170,6 +199,7 @@ class YtDlpManager {
    */
   async downloadVideo(url, options = {}) {
     const platform = detectPlatform(url);
+    console.log(`🎬 YtDlpManager.downloadVideo: URL=${url}, Platform=${platform}`);
     
     if (platform === 'youtube' && this.ytdlCore) {
       // For YouTube, we can use ytdl-core streaming
@@ -181,9 +211,87 @@ class YtDlpManager {
       return this.ytdlCore(url, streamOptions);
     }
     
-    // For other platforms, return the yt-dlp-exec instance for manual handling
+    // For other platforms, use yt-dlp-exec with streaming
     if (this.ytDlpExec) {
-      return this.ytDlpExec;
+      console.log(`🔧 Using yt-dlp-exec for ${platform} download`);
+      
+      // Prepare yt-dlp options
+      const ytdlpOptions = {
+        output: '-', // Stream to stdout
+        format: options.format || 'best[ext=mp4]/best',
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true
+      };
+      
+      // Add platform-specific headers
+       if (platform === 'twitter') {
+         ytdlpOptions.addHeader = [
+           'referer:https://x.com/',
+           'origin:https://x.com',
+           'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+           'accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+           'sec-ch-ua:"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+           'sec-fetch-dest:document',
+           'sec-fetch-mode:navigate',
+           'sec-fetch-site:none'
+         ];
+
+         ytdlpOptions.retries = 5;
+         ytdlpOptions.sleepInterval = 1;
+       }
+      
+      console.log('🎯 yt-dlp download options:', ytdlpOptions);
+      
+      // Create and return the download stream using yt-dlp-exec directly
+      // Use the exec method with proper streaming
+      const ytdlpExec = require('yt-dlp-exec');
+      const { spawn } = require('child_process');
+      const path = require('path');
+      
+      // Use the bundled yt-dlp.exe from the project root
+      const ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+      
+      // Build command arguments for download
+      const args = [url];
+      
+      // Add format
+      if (ytdlpOptions.format) {
+        args.push('--format', ytdlpOptions.format);
+      }
+      
+      // Add output to stdout
+      if (ytdlpOptions.output) {
+        args.push('--output', ytdlpOptions.output);
+      }
+      
+      // Add headers
+      if (ytdlpOptions.addHeader && Array.isArray(ytdlpOptions.addHeader)) {
+        ytdlpOptions.addHeader.forEach(header => {
+          args.push('--add-header', header);
+        });
+      }
+      
+      // Add boolean options
+      if (ytdlpOptions.noCheckCertificates) args.push('--no-check-certificates');
+      if (ytdlpOptions.noWarnings) args.push('--no-warnings');
+      if (ytdlpOptions.preferFreeFormats) args.push('--prefer-free-formats');
+      
+      // Add retry options
+      if (ytdlpOptions.retries) {
+        args.push('--retries', ytdlpOptions.retries.toString());
+      }
+      if (ytdlpOptions.sleepInterval) {
+        args.push('--sleep-interval', ytdlpOptions.sleepInterval.toString());
+      }
+      
+      console.log('🎯 Spawning yt-dlp with args:', args);
+      
+      const downloadProcess = spawn(ytdlpPath, args, {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      
+      return downloadProcess.stdout;
     }
     
     throw new Error(`No suitable downloader available for platform: ${platform}`);

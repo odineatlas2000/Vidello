@@ -120,15 +120,21 @@ async function downloadVideo(url, format, quality, res) {
       output: '-' // Stream to stdout
     };
     
-    // Handle quality selection
+    // Handle quality selection and set response headers
     if (quality && !isNaN(parseInt(quality, 10))) {
       const targetHeight = parseInt(quality, 10);
       downloadOptions.format = `best[height<=${targetHeight}][ext=mp4]/best[ext=mp4]`;
       console.log(`Twitter: Requesting quality <= ${targetHeight}p`);
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Disposition', 'attachment; filename="twitter_video.mp4"');
     } else if (format === 'audio') {
       downloadOptions.format = 'bestaudio[ext=m4a]/bestaudio';
       res.setHeader('Content-Type', 'audio/mp4');
       res.setHeader('Content-Disposition', 'attachment; filename="twitter_audio.m4a"');
+    } else {
+      // Default video download
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Disposition', 'attachment; filename="twitter_video.mp4"');
     }
     
     console.log('Twitter download options:', downloadOptions);

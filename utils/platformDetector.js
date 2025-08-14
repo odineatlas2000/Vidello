@@ -25,7 +25,7 @@ function detectPlatform(url) {
     return 'instagram';
   } else if (urlLower.includes('facebook.com') || urlLower.includes('fb.watch')) {
     return 'facebook';
-  } else if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
+  } else if (urlLower.includes('twitter.com') || urlLower.includes('x.com') || urlLower.includes('t.co')) {
     return 'twitter';
   } else if (urlLower.includes('vimeo.com')) {
     return 'vimeo';
