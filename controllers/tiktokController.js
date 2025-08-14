@@ -1,4 +1,10 @@
-const ytdlp = require('yt-dlp-exec');
+const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
+
+// Use centralized YtDlpManager
+const ytdlpManager = require('../utils/ytdlpManager');
+console.log('✅ TikTok controller: Using centralized YtDlpManager');
 
 /**
  * Get TikTok video information
@@ -6,6 +12,13 @@ const ytdlp = require('yt-dlp-exec');
 async function getVideoInfo(url, res) {
   try {
     console.log('Getting TikTok video info for URL:', url);
+    
+    if (!ytdlpManager.isReady()) {
+      return res.status(500).json({ 
+        error: 'TikTok video downloader not available',
+        details: 'YtDlpManager is not properly initialized'
+      });
+    }
     
     // Check if the URL is a TikTok photo URL
     if (url.includes('/photo/')) {
@@ -16,13 +29,8 @@ async function getVideoInfo(url, res) {
       });
     }
     
-    // Use yt-dlp to get video information
-    const info = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      preferFreeFormats: true
-    });
+    // Use centralized manager to get video information
+    const info = await ytdlpManager.getVideoInfo(url);
     
     console.log('TikTok video info retrieved successfully');
     
@@ -85,27 +93,35 @@ async function downloadVideo(url, format, res) {
     
     try {
       // Get video info first to get the title
-      const info = await ytdlp(url, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        noCallHome: true
-      });
+      const info = await ytdlpManager.getVideoInfo(url);
       
       console.log('TikTok video info retrieved successfully');
-      const videoTitle = (info.title || 'tiktok_video').replace(/[\/\:*?"<>|]/g, '_'); // Sanitize title for filename
+      // Sanitize title for filename and HTTP headers - remove all non-ASCII and problematic characters
+      const videoTitle = (info.title || 'tiktok_video')
+        .replace(/[^a-zA-Z0-9\s\-_\.]/g, '_') // Keep only alphanumeric, spaces, hyphens, underscores, dots
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .substring(0, 100); // Limit length
       
-      const path = require('path');
-      const { spawn } = require('child_process');
+      // Try local yt-dlp.exe first, then fallback to system yt-dlp
+      let ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+      if (!fs.existsSync(ytdlpPath)) {
+        try {
+          const ytdlpExec = require('yt-dlp-exec');
+          ytdlpPath = ytdlpExec.binaryPath || 'yt-dlp';
+        } catch (e) {
+          console.error('yt-dlp not available for TikTok streaming:', e.message);
+          return res.status(500).json({ error: 'yt-dlp binary not available for streaming TikTok content' });
+        }
+      }
       
-      const ytdlpPath = path.join(__dirname, '../node_modules/yt-dlp-exec/bin/yt-dlp');
-      console.log('yt-dlp path:', ytdlpPath);
+      console.log('Using yt-dlp binary at:', ytdlpPath);
       
       let ytdlpProcess;
       
       // Handle different formats
       if (format === 'audio') {
         // Set headers for MP3 download
-        res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
+        res.header('Content-Disposition', `attachment; filename="${encodeURIComponent(videoTitle)}.mp3"`);
         res.header('Content-Type', 'audio/mpeg');
         
         console.log('Creating direct TikTok audio stream (MP3)');
@@ -123,15 +139,16 @@ async function downloadVideo(url, format, res) {
       } else {
         // Default to MP4 video download
         // Set headers for MP4 download
-        res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+        res.header('Content-Disposition', `attachment; filename="${encodeURIComponent(videoTitle)}.mp4"`);
         res.header('Content-Type', 'video/mp4');
         
         console.log('Creating direct TikTok video stream (MP4)');
         
-        // Create a process that streams directly to stdout
+        // Create a process that streams directly to stdout with better format selection
         ytdlpProcess = spawn(ytdlpPath, [
           url,
-          '-f', 'best[ext=mp4]/best', // Try to get mp4 format if available
+          '-f', 'best[ext=mp4][vcodec^=avc]/best[ext=mp4]/mp4/best', // Prioritize H.264 MP4 for compatibility
+          '--recode-video', 'mp4', // Force re-encode to MP4 if needed
           '--no-playlist',
           '--no-warnings',
           '-o', '-'  // Output to stdout

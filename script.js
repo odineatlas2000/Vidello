@@ -9,6 +9,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoDuration = document.getElementById('videoDuration');
     const videoThumbnail = document.getElementById('videoThumbnail');
     
+    // Add click handler for logo to navigate to home page
+    const logoDiv = document.querySelector('.flex.items-center.space-x-2');
+    if (logoDiv) {
+        logoDiv.style.cursor = 'pointer';
+        logoDiv.addEventListener('click', function() {
+            window.location.href = '/';
+        });
+    }
+    
     // Create toast container if it doesn't exist
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
@@ -142,19 +151,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 videoThumbnail.src = data.thumbnail;
                 
                 // Clear previous download options
-                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.gap-4');
+                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3.max-h-96.overflow-y-auto');
                 downloadOptionsContainer.innerHTML = '';
                 
                 // Add download options based on available formats
                 const formats = [
-                    { label: 'MP4', quality: '720p HD', format: 'mp4', qualityParam: 'highest' },
-                    { label: 'MP4', quality: '360p', format: 'mp4', qualityParam: 'lowest' },
+                    { label: 'MP4', quality: '2160p (4K)', format: 'mp4', qualityParam: '2160' },
+                    { label: 'MP4', quality: '1440p (2K)', format: 'mp4', qualityParam: '1440' },
+                    { label: 'MP4', quality: '1080p (Full HD)', format: 'mp4', qualityParam: '1080' },
+                    { label: 'MP4', quality: '720p (HD)', format: 'mp4', qualityParam: '720' },
+                    { label: 'MP4', quality: '480p', format: 'mp4', qualityParam: '480' },
+                    { label: 'MP4', quality: '360p', format: 'mp4', qualityParam: '360' },
+                    { label: 'MP4', quality: 'Best Available', format: 'mp4', qualityParam: 'highest' },
                     { label: 'MP3', quality: 'Audio Only', format: 'audio', qualityParam: 'highestaudio' }
                 ];
                 
                 formats.forEach(format => {
                     const formatElement = document.createElement('div');
-                    formatElement.className = 'border rounded-lg p-4 hover:bg-blue-50 cursor-pointer transition-colors';
+                    formatElement.className = 'border rounded-lg p-3 hover:bg-blue-50 cursor-pointer transition-colors';
                 
                     formatElement.innerHTML = `
                         <div class="flex justify-between items-center">
@@ -226,8 +240,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 videoThumbnail.src = data.thumbnail || 'https://via.placeholder.com/480x852?text=TikTok+Video';
                 
                 // Clear previous download options
-                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.gap-4');
-                downloadOptionsContainer.innerHTML = '';
+                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3.max-h-96.overflow-y-auto');
+                if (downloadOptionsContainer) {
+                    downloadOptionsContainer.innerHTML = '';
+                } else {
+                    console.error('Download options container not found');
+                    return;
+                }
                 
                 // Add download options for TikTok
                 const formats = [
@@ -307,8 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 videoThumbnail.src = data.thumbnail || data.thumbnail_url || 'https://via.placeholder.com/480x480?text=Instagram+Video';
                 
                 // Clear previous download options
-                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.gap-4');
+            const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3.max-h-96.overflow-y-auto');
+            if (downloadOptionsContainer) {
                 downloadOptionsContainer.innerHTML = '';
+            } else {
+                console.error('Download options container not found');
+                return;
+            }
                 
                 // Add download options for Instagram
                 const formats = [
@@ -388,12 +412,103 @@ document.addEventListener('DOMContentLoaded', function() {
                 videoThumbnail.src = data.thumbnail || 'https://via.placeholder.com/480x360?text=Facebook+Video';
                 
                 // Clear previous download options
-                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.gap-4');
+            const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3.max-h-96.overflow-y-auto');
+            if (downloadOptionsContainer) {
                 downloadOptionsContainer.innerHTML = '';
+            } else {
+                console.error('Download options container not found');
+                return;
+            }
                 
                 // Add download options for Facebook
                 const formats = [
                     { label: 'MP4', quality: 'Original Quality', format: 'mp4' },
+                    { label: 'MP3', quality: 'Audio Only', format: 'audio' }
+                ];
+                
+                formats.forEach(format => {
+                    const formatElement = document.createElement('div');
+                    formatElement.className = 'border rounded-lg p-4 hover:bg-blue-50 cursor-pointer transition-colors';
+                
+                    formatElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">${format.label}</p>
+                                <p class="text-sm text-gray-500">${format.quality}</p>
+                            </div>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors download-option" 
+                                    data-url="${videoUrl}" 
+                                    data-format="${format.format}">Download</button>
+                        </div>
+                    `;
+                
+                    // Add click event to the download button
+                    const downloadButton = formatElement.querySelector('.download-option');
+                    downloadButton.addEventListener('click', function() {
+                        const videoUrl = this.getAttribute('data-url');
+                        const format = this.getAttribute('data-format');
+                        
+                        // Create download URL with query parameters
+                        const downloadUrl = `${API_URL}/download?url=${encodeURIComponent(videoUrl)}&format=${format}`;
+                        
+                        // Show download status to user
+                        const originalText = this.textContent;
+                        this.textContent = 'Downloading...';
+                        this.disabled = true;
+                        
+                        // Create a hidden iframe for download instead of opening a new tab
+                        const downloadFrame = document.createElement('iframe');
+                        downloadFrame.style.display = 'none';
+                        document.body.appendChild(downloadFrame);
+                        
+                        // Set a timeout to update the button text if download takes longer than expected
+                        const downloadTimeout = setTimeout(() => {
+                            this.textContent = 'Downloading in background...';
+                            this.disabled = true;
+                            // Show a more informative message with a toast notification instead of an alert
+                            showToastNotification('Download is continuing in the background. Please wait...', 'info');
+                        }, 30000); // 30 seconds timeout
+                        
+                        // Start the download
+                        downloadFrame.src = downloadUrl;
+                        
+                        // Listen for the iframe load event
+                        downloadFrame.onload = function() {
+                            clearTimeout(downloadTimeout);
+                            const button = document.querySelector(`[data-url="${videoUrl}"][data-format="${format}"]`);
+                            if (button) {
+                                button.textContent = originalText;
+                                button.disabled = false;
+                            }
+                            // Show success notification
+                            showToastNotification('Download completed successfully!', 'success');
+                            // Remove the iframe after a short delay
+                            setTimeout(() => {
+                                document.body.removeChild(downloadFrame);
+                            }, 1000);
+                        };
+                    });
+                    
+                    downloadOptionsContainer.appendChild(formatElement);
+                });
+            } else {
+                // Generic fallback for other platforms (Pinterest, Twitter, Vimeo, etc.)
+                videoTitle.textContent = data.title || 'Video';
+                videoDuration.textContent = typeof data.duration === 'number' ? formatDuration(data.duration) : data.duration || '00:00';
+                videoThumbnail.src = data.thumbnail || 'https://via.placeholder.com/480x360?text=Video';
+                
+                // Clear previous download options
+                const downloadOptionsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3.max-h-96.overflow-y-auto');
+                if (downloadOptionsContainer) {
+                    downloadOptionsContainer.innerHTML = '';
+                } else {
+                    console.error('Download options container not found');
+                    return;
+                }
+                
+                // Add generic download options
+                const formats = [
+                    { label: 'MP4', quality: 'Best Available Video', format: 'mp4' },
                     { label: 'MP3', quality: 'Audio Only', format: 'audio' }
                 ];
                 

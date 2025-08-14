@@ -1,7 +1,10 @@
 const axios = require('axios');
 const { spawn } = require('child_process');
 const path = require('path');
-const ytdlp = require('yt-dlp-exec');
+
+// Use centralized YtDlpManager
+const ytdlpManager = require('../utils/ytdlpManager');
+console.log('✅ Instagram controller: Using centralized YtDlpManager');
 
 /**
  * Get Instagram video information using yt-dlp
@@ -10,13 +13,15 @@ async function getVideoInfo(url, res) {
   try {
     console.log('Fetching Instagram video info for:', url);
     
-    // Use yt-dlp to get video information
-    const videoInfo = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      preferFreeFormats: true
-    });
+    if (!ytdlpManager.isReady()) {
+      return res.status(500).json({ 
+        error: 'Instagram video downloader not available',
+        details: 'YtDlpManager is not properly initialized'
+      });
+    }
+    
+    // Use centralized manager to get video information
+    const videoInfo = await ytdlpManager.getVideoInfo(url);
     
     // Format the response
     const formattedInfo = {
@@ -61,19 +66,30 @@ async function downloadVideo(url, format, res, req) {
     console.log(`Downloading Instagram ${format === 'audio' ? 'audio' : 'video'} from:`, url);
     
     // Get video info to get the title for the filename
-    const videoInfo = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true
-    });
+    const videoInfo = await ytdlpManager.getVideoInfo(url);
     
     // Extract video title and sanitize it for use as a filename
-    const videoTitle = (videoInfo.title || `instagram_${videoInfo.id}`)
-      .replace(/[\\/:*?"<>|]/g, '_') // Replace invalid filename characters
+    const videoTitle = (videoInfo.title || `instagram_${Date.now()}`)
+      .replace(/[\\\/:*?"<>|]/g, '_') // Replace invalid filename characters
       .substring(0, 100); // Limit filename length
     
-    // Get the path to the yt-dlp executable
-    const ytdlpPath = path.resolve('./node_modules/yt-dlp-exec/bin/yt-dlp');
+    // Get the yt-dlp executable path
+    const path = require('path');
+    const fs = require('fs');
+    
+    // Try local yt-dlp.exe first, then fallback to system yt-dlp
+    let ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+    if (!fs.existsSync(ytdlpPath)) {
+      try {
+        const ytdlpExec = require('yt-dlp-exec');
+        ytdlpPath = ytdlpExec.binaryPath || 'yt-dlp';
+      } catch (e) {
+        console.error('yt-dlp not available for Instagram streaming:', e.message);
+        return res.status(500).json({ error: 'yt-dlp binary not available for streaming Instagram content' });
+      }
+    }
+    
+    console.log('Using yt-dlp binary at:', ytdlpPath);
     
     // Initialize ytdlpProcess variable
     let ytdlpProcess;
@@ -93,6 +109,8 @@ async function downloadVideo(url, format, res, req) {
         '--audio-format', 'mp3',
         '--no-playlist',
         '--no-warnings',
+        '--add-header', 'referer:https://www.instagram.com/',
+        '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         '-o', '-'  // Output to stdout
       ]);
     } else {
@@ -109,6 +127,8 @@ async function downloadVideo(url, format, res, req) {
         '-f', 'best[ext=mp4]/best', // Try to get mp4 format if available
         '--no-playlist',
         '--no-warnings',
+        '--add-header', 'referer:https://www.instagram.com/',
+        '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         '-o', '-'  // Output to stdout
       ]);
     }

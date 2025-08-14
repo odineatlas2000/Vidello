@@ -1,7 +1,11 @@
-const ytdlp = require('yt-dlp-exec');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 const { Readable } = require('stream');
+
+// Use centralized YtDlpManager
+const ytdlpManager = require('../utils/ytdlpManager');
+console.log('✅ Facebook controller: Using centralized YtDlpManager');
 
 /**
  * Get Facebook video information
@@ -10,13 +14,15 @@ async function getVideoInfo(url, res) {
   try {
     console.log('Getting Facebook video info for URL:', url);
     
-    // Use yt-dlp to get video information
-    const info = await ytdlp(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      preferFreeFormats: true
-    });
+    if (!ytdlpManager.isReady()) {
+      return res.status(500).json({ 
+        error: 'Facebook video downloader not available',
+        details: 'YtDlpManager is not properly initialized'
+      });
+    }
+    
+    // Use centralized manager to get video information
+    const info = await ytdlpManager.getVideoInfo(url);
     
     console.log('Facebook video info retrieved successfully');
     
@@ -72,19 +78,34 @@ async function downloadVideo(url, format, res, req) {
   try {
     console.log(`Downloading Facebook ${format} for URL:`, url);
     
+    if (!ytdlpManager.isReady()) {
+      return res.status(500).json({ 
+        error: 'Facebook video downloader not available',
+        details: 'YtDlpManager is not properly initialized'
+      });
+    }
+    
     // Sanitize the filename to avoid any path traversal or invalid characters
     const timestamp = Date.now();
     const sanitizedFilename = `facebook_${timestamp}`;
     
-    // Get the path to the yt-dlp executable
-    const path = require('path');
-    const { spawn } = require('child_process');
-    const ytdlpPath = path.join(__dirname, '../node_modules/yt-dlp-exec/bin/yt-dlp');
-    
-    // Initialize ytdlpProcess variable
-    let ytdlpProcess;
+    // Try local yt-dlp.exe first, then fallback to system yt-dlp
+    let ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+    if (!fs.existsSync(ytdlpPath)) {
+      try {
+        const ytdlpExec = require('yt-dlp-exec');
+        ytdlpPath = ytdlpExec.binaryPath || 'yt-dlp';
+      } catch (e) {
+        console.error('yt-dlp not available for Facebook streaming:', e.message);
+        return res.status(500).json({ error: 'yt-dlp binary not available for streaming Facebook content' });
+      }
+    }
+
+    console.log('Using yt-dlp binary at:', ytdlpPath);
     
     // Handle different formats
+    let ytdlpProcess;
+    
     if (format === 'audio') {
       // Set headers for MP3 download
       res.header('Content-Disposition', `attachment; filename="${sanitizedFilename}.mp3"`);
@@ -97,10 +118,11 @@ async function downloadVideo(url, format, res, req) {
         url,
         '--extract-audio',
         '--audio-format', 'mp3',
-        '--audio-quality', '0', // Best quality
+        '--audio-quality', '0',
         '--no-playlist',
         '--no-warnings',
-        '-o', '-'  // Output to stdout
+        '--output', '-',
+        '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       ]);
     } else {
       // Default to MP4 video download
@@ -110,63 +132,51 @@ async function downloadVideo(url, format, res, req) {
       
       console.log('Creating Facebook video stream (MP4)');
       
-      // Create a process that streams directly to stdout
+      // Create a process that downloads video and streams to stdout
       ytdlpProcess = spawn(ytdlpPath, [
         url,
-        '-f', 'best[ext=mp4]/best', // Try to get mp4 format if available
+        '--format', 'best[ext=mp4]/best',
         '--no-playlist',
         '--no-warnings',
-        '-o', '-'  // Output to stdout
+        '--output', '-',
+        '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       ]);
     }
     
-    // Log any errors
-    ytdlpProcess.stderr.on('data', (data) => {
-      console.error(`yt-dlp stderr: ${data}`);
-      
-      // Check if the error is related to IP blocking
-      if (data.toString().includes('IP address is blocked')) {
-        console.error('Facebook IP blocking detected during download');
+    // Handle process events
+    ytdlpProcess.on('error', (err) => {
+      console.error('Facebook download process error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Failed to download Facebook video', 
+          details: err.message 
+        });
+      }
+    });
+    
+    ytdlpProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('Facebook video download completed successfully');
+      } else {
+        console.error(`Facebook download process exited with code ${code}`);
         if (!res.headersSent) {
-          res.status(403).json({
-            error: 'Facebook has blocked the server IP address',
-            message: 'Facebook has implemented measures to prevent scraping. Please try again later or use a different approach.'
+          res.status(500).json({
+            error: 'Failed to download Facebook content',
+            details: `Process exited with code ${code}`
           });
         }
       }
     });
     
-    // Handle process errors
-    ytdlpProcess.on('error', (err) => {
-      console.error('yt-dlp process error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to download Facebook content', details: err.message });
-      } else {
-        res.end();
-      }
-    });
-    
-    // Pipe the output directly to the response
-    ytdlpProcess.stdout.pipe(res);
-    
-    // Handle process completion
-    ytdlpProcess.on('close', (code) => {
-      console.log(`yt-dlp process exited with code ${code}`);
-      if (code !== 0 && !res.headersSent) {
-        return res.status(500).json({
-          error: 'Failed to download Facebook content',
-          details: `Process exited with code ${code}`
-        });
-      }
-    });
-    
     // Handle client disconnect
-    req.on('close', () => {
-      if (ytdlpProcess) {
-        console.log('Client disconnected, killing yt-dlp process');
+    res.on('close', () => {
+      if (!ytdlpProcess.killed) {
         ytdlpProcess.kill();
       }
     });
+    
+    // Pipe the process stdout to response
+    ytdlpProcess.stdout.pipe(res);
     
   } catch (error) {
     console.error('Error downloading Facebook video:', error);

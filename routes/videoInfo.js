@@ -4,6 +4,9 @@ const youtubeController = require('../controllers/youtubeController');
 const tiktokController = require('../controllers/tiktokController');
 const instagramController = require('../controllers/instagramController');
 const facebookController = require('../controllers/facebookController');
+const vimeoController = require('../controllers/vimeoController');
+const twitterController = require('../controllers/twitterController');
+const pinterestController = require('../controllers/pinterestController');
 const platformDetector = require('../utils/platformDetector');
 
 /**
@@ -30,6 +33,12 @@ router.get('/video-info', async (req, res, next) => {
         return instagramController.getVideoInfo(url, res);
       case 'facebook':
         return facebookController.getVideoInfo(url, res);
+      case 'vimeo':
+        return vimeoController.getVideoInfo(url, res);
+      case 'twitter':
+        return twitterController.getVideoInfo(url, res);
+      case 'pinterest':
+        return pinterestController.getVideoInfo(url, res);
       default:
         return res.status(400).json({ error: 'Unsupported platform' });
     }

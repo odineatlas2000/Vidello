@@ -6,7 +6,16 @@
 function detectPlatform(url) {
   if (!url) return 'unknown';
   
-  const urlLower = url.toLowerCase();
+  // Decode URL if it's encoded
+  let decodedUrl = url;
+  try {
+    decodedUrl = decodeURIComponent(url);
+  } catch (e) {
+    // If decoding fails, use original URL
+    decodedUrl = url;
+  }
+  
+  const urlLower = decodedUrl.toLowerCase();
   
   if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
     return 'youtube';
@@ -20,6 +29,8 @@ function detectPlatform(url) {
     return 'twitter';
   } else if (urlLower.includes('vimeo.com')) {
     return 'vimeo';
+  } else if (urlLower.includes('pinterest.com') || urlLower.includes('pin.it')) {
+    return 'pinterest';
   } else {
     return 'unknown';
   }

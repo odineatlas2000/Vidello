@@ -39,7 +39,7 @@
                 Download Videos with <span class="text-yellow-300">Elegance</span>
             </h1>
             <p class="text-xl text-blue-100 mb-12 max-w-3xl mx-auto">
-                A beautifully simple way to download your favorite videos from YouTube and TikTok. 
+                A beautifully simple way to download your favorite videos from YouTube, TikTok, Instagram, Facebook, Vimeo, and Twitter. 
                 Just paste a link and we'll handle the rest.
             </p>
             
@@ -49,11 +49,11 @@
                     <input 
                         type="text" 
                         id="videoUrl" 
-                        placeholder="Paste YouTube or TikTok URL here..." 
+                        placeholder="Paste video URL from any supported platform..." 
                         class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                     >
                     <p class="text-sm text-gray-500 text-left">
-                        Enter a valid YouTube or TikTok video URL to download
+                        Supports: YouTube, TikTok, Instagram, Facebook, Vimeo, Twitter, Pinterest
                     </p>
                     <button 
                         id="downloadBtn" 
@@ -94,7 +94,7 @@
                     </div>
                     <h3 class="text-2xl font-semibold text-gray-900 mb-4">Multiple Platforms</h3>
                     <p class="text-gray-600 leading-relaxed">
-                        Support for both YouTube and TikTok videos with automatic detection.
+                        Support for YouTube, TikTok, Instagram, Facebook, Vimeo, and Twitter with automatic platform detection.
                     </p>
                 </div>
                 
@@ -106,6 +106,74 @@
                     <p class="text-gray-600 leading-relaxed">
                         We don't store your videos or track what you download. Your privacy comes first.
                     </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Supported Platforms Section -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Supported Platforms</h2>
+                <p class="text-lg text-gray-600">Download videos from all your favorite platforms</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 items-center">
+                <!-- YouTube -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-youtube text-red-600 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">YouTube</span>
+                </div>
+                
+                <!-- TikTok -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-tiktok text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">TikTok</span>
+                </div>
+                
+                <!-- Instagram -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-500 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-instagram text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Instagram</span>
+                </div>
+                
+                <!-- Facebook -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-facebook-f text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Facebook</span>
+                </div>
+                
+                <!-- Vimeo -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-vimeo-v text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Vimeo</span>
+                </div>
+                
+                <!-- Twitter -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-twitter text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Twitter</span>
+                </div>
+                
+                <!-- Pinterest -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-pinterest text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Pinterest</span>
                 </div>
             </div>
         </div>
@@ -127,7 +195,7 @@
                     <div class="bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">Step 1</div>
                     <h3 class="text-2xl font-semibold text-gray-900 mb-4">Paste URL</h3>
                     <p class="text-gray-600 leading-relaxed">
-                        Copy the video URL from YouTube or TikTok and paste it into the input field.
+                        Copy the video URL from any supported platform and paste it into the input field.
                     </p>
                 </div>
                 
@@ -163,7 +231,7 @@
                 Ready to download your first video?
             </h2>
             <p class="text-xl text-gray-600 mb-8">
-                Start by pasting a YouTube or TikTok URL in the input field above.
+                Start by pasting a video URL from any supported platform in the input field above.
             </p>
             <button 
                 onclick="document.getElementById('videoUrl').scrollIntoView({behavior: 'smooth'})" 
@@ -192,8 +260,8 @@
                     </div>
                 </div>
                 
-                <h5 class="font-semibold text-gray-700 mb-4 text-lg">Select Format:</h5>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h5 class="font-semibold text-gray-700 mb-4 text-lg">Select Format & Quality:</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
                     <!-- Download options will be inserted here -->
                 </div>
             </div>

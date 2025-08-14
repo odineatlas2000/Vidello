@@ -3,95 +3,197 @@
  * Provides a centralized way to manage yt-dlp configuration and initialization
  */
 
+const { detectPlatform } = require('./platformDetector');
+
 class YtDlpManager {
   constructor() {
-    this.ytdlp = null;
-    this.isYtDlpExec = false;
+    this.ytDlpExec = null; // for all platforms supported by yt-dlp
     this.isInitialized = false;
     this.init();
   }
 
   init() {
+    let anyAvailable = false;
+
+    // Try to load @distube/ytdl-core first for YouTube (more reliable and updated)
     try {
-      // Try to use yt-dlp-exec first
-      const { create } = require('yt-dlp-exec');
-      this.ytdlp = create('./yt-dlp.exe');
-      this.isYtDlpExec = true;
-      this.isInitialized = true;
+      this.ytdlCore = require('@distube/ytdl-core');
+      anyAvailable = true;
+      console.log('✅ YtDlpManager: @distube/ytdl-core initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ YtDlpManager: @distube/ytdl-core not available:', error.message);
+      // Fallback to regular ytdl-core
+      try {
+        this.ytdlCore = require('ytdl-core');
+        anyAvailable = true;
+        console.log('✅ YtDlpManager: ytdl-core (fallback) initialized successfully');
+      } catch (fallbackError) {
+        console.warn('⚠️ YtDlpManager: ytdl-core fallback not available:', fallbackError.message);
+      }
+    }
+
+    // Try to load yt-dlp-exec for other platforms
+    try {
+      this.ytDlpExec = require('yt-dlp-exec');
+      anyAvailable = true;
       console.log('✅ YtDlpManager: yt-dlp-exec initialized successfully');
     } catch (error) {
-      console.log('⚠️ YtDlpManager: yt-dlp-exec not available, trying ytdl-core...');
-      
-      try {
-        // Fallback to ytdl-core
-        this.ytdlp = require('ytdl-core');
-        this.isYtDlpExec = false;
-        this.isInitialized = true;
-        console.log('✅ YtDlpManager: ytdl-core initialized as fallback');
-      } catch (fallbackError) {
-        console.error('❌ YtDlpManager: No video downloader available');
-        this.isInitialized = false;
-      }
+      console.warn('⚠️ YtDlpManager: yt-dlp-exec not available:', error.message);
+    }
+
+    this.isInitialized = anyAvailable;
+    console.log(`🔍 YtDlpManager: isInitialized = ${this.isInitialized}, anyAvailable = ${anyAvailable}`);
+    if (!anyAvailable) {
+      console.error('❌ YtDlpManager: No video downloaders available');
     }
   }
 
   /**
-   * Get video information using the available downloader
+   * Get video information using the appropriate downloader based on URL
    */
   async getVideoInfo(url) {
+    console.log(`Attempting to get video info for URL: ${url}`);
     if (!this.isInitialized) {
       throw new Error('No video downloader available');
     }
 
-    if (this.isYtDlpExec) {
-      // Using yt-dlp-exec
-      const info = await this.ytdlp(url, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        noCallHome: true,
-        preferFreeFormats: true,
-        youtubeSkipDashManifest: true
-      });
+    const platform = detectPlatform(url);
+    console.log(`Detected platform: ${platform}`);
 
-      return {
-        title: info.title,
-        thumbnail: info.thumbnail,
-        duration: info.duration,
-        formats: info.formats || []
-      };
-    } else {
-      // Using ytdl-core
-      const info = await this.ytdlp.getInfo(url);
-      
-      return {
-        title: info.videoDetails.title,
-        thumbnail: info.videoDetails.thumbnails[0]?.url,
-        duration: parseInt(info.videoDetails.lengthSeconds),
-        formats: info.formats || []
-      };
+    // Use ytdl-core for YouTube videos
+    if (platform === 'youtube' && this.ytdlCore) {
+      console.log(`Using ytdl-core for YouTube URL: ${url}`);
+      try {
+        const info = await this.ytdlCore.getInfo(url);
+        console.log('ytdl-core raw result obtained');
+        
+        return {
+          title: info.videoDetails.title,
+          thumbnail: info.videoDetails.thumbnails?.[0]?.url || null,
+          duration: parseInt(info.videoDetails.lengthSeconds) || 0,
+          formats: info.formats.map(format => ({
+            format_id: format.itag,
+            ext: format.container,
+            height: format.height,
+            width: format.width,
+            acodec: format.hasAudio ? format.audioCodec : 'none',
+            vcodec: format.hasVideo ? format.videoCodec : 'none',
+            filesize: format.contentLength
+          }))
+        };
+      } catch (execError) {
+        console.error('Error executing ytdl-core:', execError);
+        throw new Error(`ytdl-core execution failed: ${execError.message}`);
+      }
     }
+
+    // For other platforms, use yt-dlp-exec if available
+    if (this.ytDlpExec) {
+      try {
+        console.log(`🔍 YtDlpManager.getVideoInfo: URL=${url}, Detected platform=${platform}`);
+        
+        // Platform-specific headers
+        let headers = [];
+        if (platform === 'instagram') {
+          headers = [
+            'referer:https://www.instagram.com/',
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          ];
+          console.log('📱 Using Instagram headers');
+        } else if (platform === 'vimeo') {
+          headers = [
+            'referer:https://vimeo.com/',
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          ];
+          console.log('🎬 Using Vimeo headers');
+        } else {
+          headers = [
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          ];
+          console.log('🌐 Using default headers');
+        }
+        
+        const options = {
+          dumpSingleJson: true,
+          noCheckCertificates: true,
+          noWarnings: true,
+          preferFreeFormats: true
+        };
+        
+        if (headers.length > 0) {
+          options.addHeader = headers;
+        }
+        
+        const info = await this.ytDlpExec(url, options);
+        
+        return {
+          title: info.title || `${platform} Video`,
+          thumbnail: info.thumbnail,
+          duration: info.duration,
+          formats: info.formats || []
+        };
+      } catch (execError) {
+        console.error(`Error executing yt-dlp for ${platform}:`, execError);
+        throw new Error(`Failed to extract ${platform} video information: ${execError.message}`);
+      }
+    }
+    
+    throw new Error(`Platform ${platform} is not currently supported. yt-dlp-exec is not available.`);
   }
 
   /**
    * Check if the manager is properly initialized
    */
   isReady() {
+    return Boolean(this.ytDlpExec);
+  }
+
+  /**
+   * Get the type of downloader being used (summary)
+   */
+  getDownloaderType() {
+    if (!this.isInitialized) return 'none';
+    if (this.ytDlpExec) return 'yt-dlp-exec';
+    return 'none';
+  }
+
+  /**
+   * Check if the manager is ready to process requests
+   */
+  isReady() {
+    console.log(`🔍 YtDlpManager.isReady(): returning ${this.isInitialized}`);
     return this.isInitialized;
   }
 
   /**
-   * Get the type of downloader being used
+   * Download video using appropriate downloader
    */
-  getDownloaderType() {
-    if (!this.isInitialized) return 'none';
-    return this.isYtDlpExec ? 'yt-dlp-exec' : 'ytdl-core';
+  async downloadVideo(url, options = {}) {
+    const platform = detectPlatform(url);
+    
+    if (platform === 'youtube' && this.ytdlCore) {
+      // For YouTube, we can use ytdl-core streaming
+      const streamOptions = {
+        quality: options.quality || 'highest',
+        filter: options.format === 'audio' ? 'audioonly' : 'videoandaudio'
+      };
+      
+      return this.ytdlCore(url, streamOptions);
+    }
+    
+    // For other platforms, return the yt-dlp-exec instance for manual handling
+    if (this.ytDlpExec) {
+      return this.ytDlpExec;
+    }
+    
+    throw new Error(`No suitable downloader available for platform: ${platform}`);
   }
 
   /**
-   * Get the raw downloader instance
+   * Get the raw downloader instances
    */
   getDownloader() {
-    return this.ytdlp;
+    return { ytDlpExec: this.ytDlpExec };
   }
 }
 

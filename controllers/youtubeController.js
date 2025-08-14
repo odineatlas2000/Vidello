@@ -1,77 +1,35 @@
-// Initialize yt-dlp-exec with better configuration
-let ytdlp;
-try {
-  const { create } = require('yt-dlp-exec');
-  // Create yt-dlp instance with custom binary path
-  ytdlp = create('./yt-dlp.exe');
-  console.log('✅ YouTube controller: yt-dlp-exec initialized');
-} catch (error) {
-  console.error('❌ YouTube controller: Failed to initialize yt-dlp-exec:', error.message);
-  // Fallback to ytdl-core if available
-  try {
-    ytdlp = require('ytdl-core');
-    console.log('⚠️ YouTube controller: Using ytdl-core as fallback');
-  } catch (fallbackError) {
-    console.error('❌ YouTube controller: No video downloader available');
-  }
-}
+// Use centralized YtDlpManager
+const ytdlpManager = require('../utils/ytdlpManager');
+console.log('✅ YouTube controller: Using centralized YtDlpManager');
 
 /**
  * Get YouTube video information
  */
 async function getVideoInfo(url, res) {
   try {
-    if (!ytdlp) {
+    if (!ytdlpManager.isReady()) {
       return res.status(500).json({ 
         error: 'No video downloader available',
-        details: 'Neither yt-dlp-exec nor ytdl-core is properly initialized'
+        details: 'YtDlpManager is not properly initialized'
       });
     }
 
-    let info;
+    // Use centralized manager to get video info
+    const info = await ytdlpManager.getVideoInfo(url);
     
-    // Check if we're using yt-dlp-exec or ytdl-core
-    if (ytdlp.name === 'create' || typeof ytdlp === 'function') {
-      // Using yt-dlp-exec
-      info = await ytdlp(url, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        noCallHome: true,
-        preferFreeFormats: true,
-        youtubeSkipDashManifest: true
-      });
-      
-      return res.json({
-        platform: 'youtube',
-        title: info.title,
-        thumbnail: info.thumbnail,
-        duration: info.duration,
-        formats: info.formats ? info.formats.map(format => ({
-          quality: format.height ? `${format.height}p` : 'Audio only',
-          mimeType: format.ext,
-          formatId: format.format_id,
-          hasAudio: format.acodec !== 'none',
-          hasVideo: format.vcodec !== 'none'
-        })) : []
-      });
-    } else {
-      // Using ytdl-core as fallback
-      info = await ytdlp.getInfo(url);
-      
-      return res.json({
-        platform: 'youtube',
-        title: info.videoDetails.title,
-        thumbnail: info.videoDetails.thumbnails[0]?.url,
-        duration: parseInt(info.videoDetails.lengthSeconds),
-        formats: info.formats.map(format => ({
-          quality: format.qualityLabel || 'Unknown',
-          mimeType: format.container,
-          formatId: format.itag,
-          hasAudio: format.hasAudio,
-          hasVideo: format.hasVideo
-        }))
-      });
-    }
+    return res.json({
+      platform: 'youtube',
+      title: info.title,
+      thumbnail: info.thumbnail,
+      duration: info.duration,
+      formats: info.formats ? info.formats.map(format => ({
+        quality: format.height ? `${format.height}p` : 'Audio only',
+        mimeType: format.ext,
+        formatId: format.format_id,
+        hasAudio: format.acodec !== 'none',
+        hasVideo: format.vcodec !== 'none'
+      })) : []
+    });
   } catch (error) {
     console.error('YouTube extraction error:', error);
     return res.status(500).json({ 
@@ -89,30 +47,16 @@ async function downloadVideo(url, format, quality, res) {
     console.log('Starting download process for URL:', url);
     console.log('Format:', format, 'Quality:', quality);
     
-    if (!ytdlp) {
+    if (!ytdlpManager.isReady()) {
       return res.status(500).json({ 
         error: 'No video downloader available',
-        details: 'Neither yt-dlp-exec nor ytdl-core is properly initialized'
+        details: 'YtDlpManager is not properly initialized'
       });
     }
 
-    let info;
-    let videoTitle;
-    
-    // Get video info first
-    if (ytdlp.name === 'create' || typeof ytdlp === 'function') {
-      // Using yt-dlp-exec
-      info = await ytdlp(url, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        noCallHome: true
-      });
-      videoTitle = info.title.replace(/[\/\:*?"<>|]/g, '_');
-    } else {
-      // Using ytdl-core
-      info = await ytdlp.getInfo(url);
-      videoTitle = info.videoDetails.title.replace(/[\/\:*?"<>|]/g, '_');
-    }
+    // Get video info first to get title
+    const info = await ytdlpManager.getVideoInfo(url);
+    const videoTitle = info.title.replace(/[\/\:*?"<>|]/g, '_');
     
     console.log('Video info retrieved successfully');
     
@@ -122,32 +66,21 @@ async function downloadVideo(url, format, quality, res) {
       res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
       res.header('Content-Type', 'audio/mpeg');
       
-      console.log('Creating direct audio stream');
+      console.log('Creating direct audio stream using ytdl-core');
       
-      // Use yt-dlp binary directly for better performance
-      const path = require('path');
-      const { spawn } = require('child_process');
+      // Use ytdl-core for audio streaming
+      const ytdlCore = require('@distube/ytdl-core');
       
-      const ytdlpPath = path.join(__dirname, '../yt-dlp.exe');
-      console.log('yt-dlp path:', ytdlpPath);
-      
-      // Create a process that streams directly to stdout
-      const ytdlpProcess = spawn(ytdlpPath, [
-        url,
-        '--extract-audio',
-        '--audio-format', 'mp3',
-        '--audio-quality', '0',
-        '-o', '-'  // Output to stdout
-      ]);
-      
-      // Log any errors
-      ytdlpProcess.stderr.on('data', (data) => {
-        console.log(`yt-dlp stderr: ${data}`);
+      // Create audio stream with ytdl-core
+      const audioStream = ytdlCore(url, {
+        filter: 'audioonly',
+        quality: 'highestaudio',
+        format: 'mp4'
       });
       
-      // Handle process errors
-      ytdlpProcess.on('error', (err) => {
-        console.error('yt-dlp process error:', err);
+      // Handle stream errors
+      audioStream.on('error', (err) => {
+        console.error('ytdl-core audio stream error:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Failed to stream YouTube audio', details: err.message });
         } else {
@@ -155,21 +88,18 @@ async function downloadVideo(url, format, quality, res) {
         }
       });
       
-      // Handle process exit
-      ytdlpProcess.on('close', (code) => {
-        console.log(`yt-dlp process exited with code ${code}`);
-        if (code !== 0 && !res.headersSent) {
-          res.status(500).json({ error: 'Failed to download YouTube audio', details: `yt-dlp exited with code ${code}` });
-        }
+      // Handle stream end
+      audioStream.on('end', () => {
+        console.log('Audio stream ended successfully');
       });
       
-      // Pipe stdout directly to response
-      ytdlpProcess.stdout.pipe(res);
+      // Pipe audio stream directly to response
+      audioStream.pipe(res);
       
       // Handle client disconnect
       res.on('close', () => {
-        console.log('Response closed, killing yt-dlp process');
-        ytdlpProcess.kill();
+        console.log('Response closed, destroying audio stream');
+        audioStream.destroy();
       });
       
     } else {
@@ -177,35 +107,94 @@ async function downloadVideo(url, format, quality, res) {
       res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
       res.header('Content-Type', 'video/mp4');
       
-      // Use a simpler format string for better compatibility
-      const formatString = quality ? `best[height<=${quality}][ext=mp4]/best[ext=mp4]/best` : 'best[ext=mp4]/best';
+      // Determine video quality for ytdl-core
+      let streamOptions = {
+        filter: 'videoandaudio',
+        format: 'mp4'
+      };
       
-      console.log('Creating direct video stream with format:', formatString);
+      if (!quality || quality === 'highest') {
+        streamOptions.quality = 'highest';
+      } else if (quality === 'lowest') {
+        streamOptions.quality = 'lowest';
+      } else if (!isNaN(parseInt(quality, 10))) {
+        // For specific quality numbers, use a more precise approach
+        const targetHeight = parseInt(quality, 10);
+        
+        // First try to get formats with both video and audio at exact or closest quality
+        streamOptions.filter = (format) => {
+          if (!format.hasVideo || !format.height) return false;
+          
+          // Prioritize formats with both video and audio
+          if (format.hasAudio) {
+            // Exact match gets highest priority
+            if (format.height === targetHeight) return true;
+            // Close matches within reasonable range
+            if (format.height <= targetHeight && format.height >= targetHeight - 240) return true;
+          }
+          
+          return false;
+        };
+        
+        streamOptions.quality = 'highest';
+        console.log(`YouTube: Filtering for video+audio quality at or near ${targetHeight}p`);
+      } else {
+        streamOptions.quality = 'highest';
+      }
       
-      // Use yt-dlp binary directly for better performance
-      const path = require('path');
-      const { spawn } = require('child_process');
+      console.log('Creating direct video stream using ytdl-core with options:', streamOptions);
       
-      const ytdlpPath = path.join(__dirname, '../yt-dlp.exe');
-      console.log('yt-dlp path:', ytdlpPath);
+      // Use ytdl-core for video streaming
+      const ytdlCore = require('@distube/ytdl-core');
       
-      // Create a process that streams directly to stdout
-      const ytdlpProcess = spawn(ytdlpPath, [
-        url,
-        '-f', formatString,
-        '--no-warnings',
-        '--no-call-home',
-        '-o', '-'  // Output to stdout
-      ]);
+      // Log available formats for debugging and check if we need fallback
+       try {
+         const info = await ytdlCore.getInfo(url);
+         const availableFormats = info.formats
+           .filter(f => f.hasVideo && f.height)
+           .map(f => ({ 
+             height: f.height, 
+             quality: f.qualityLabel, 
+             itag: f.itag, 
+             hasAudio: f.hasAudio,
+             bitrate: f.bitrate || 'N/A',
+             fps: f.fps || 'N/A'
+           }))
+           .sort((a, b) => b.height - a.height);
+         console.log('Available video formats:', availableFormats.slice(0, 10)); // Show top 10
+         
+         if (streamOptions.filter && typeof streamOptions.filter === 'function') {
+           const filteredFormats = info.formats.filter(streamOptions.filter)
+             .filter(f => f.hasVideo && f.height)
+             .map(f => ({ 
+               height: f.height, 
+               quality: f.qualityLabel, 
+               itag: f.itag, 
+               hasAudio: f.hasAudio,
+               bitrate: f.bitrate || 'N/A',
+               fps: f.fps || 'N/A'
+             }))
+             .sort((a, b) => b.height - a.height);
+           console.log('Filtered formats that match criteria:', filteredFormats);
+           
+           // If no formats found with custom filter, use videoandaudio as fallback
+           if (filteredFormats.length === 0) {
+             console.log('No formats found with custom filter, using videoandaudio fallback');
+             streamOptions.filter = 'videoandaudio';
+           }
+         } else if (streamOptions.filter === 'videoandaudio') {
+           console.log('Using videoandaudio filter - will show combined video+audio formats');
+         }
+       } catch (err) {
+         console.log('Could not log format details:', err.message);
+       }
       
-      // Log any errors
-      ytdlpProcess.stderr.on('data', (data) => {
-        console.log(`yt-dlp stderr: ${data}`);
-      });
+      // Create video stream with ytdl-core
+      const videoStream = ytdlCore(url, streamOptions);
       
-      // Handle process errors
-      ytdlpProcess.on('error', (err) => {
-        console.error('yt-dlp process error:', err);
+      // Handle stream errors
+      videoStream.on('error', (err) => {
+        console.error('ytdl-core video stream error:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: 'Failed to stream YouTube video', details: err.message });
         } else {
@@ -213,21 +202,18 @@ async function downloadVideo(url, format, quality, res) {
         }
       });
       
-      // Handle process exit
-      ytdlpProcess.on('close', (code) => {
-        console.log(`yt-dlp process exited with code ${code}`);
-        if (code !== 0 && !res.headersSent) {
-          res.status(500).json({ error: 'Failed to download YouTube video', details: `yt-dlp exited with code ${code}` });
-        }
+      // Handle stream end
+      videoStream.on('end', () => {
+        console.log('Video stream ended successfully');
       });
       
-      // Pipe stdout directly to response
-      ytdlpProcess.stdout.pipe(res);
+      // Pipe video stream directly to response
+      videoStream.pipe(res);
       
       // Handle client disconnect
       res.on('close', () => {
-        console.log('Response closed, killing yt-dlp process');
-        ytdlpProcess.kill();
+        console.log('Response closed, destroying video stream');
+        videoStream.destroy();
       });
     }
   } catch (error) {
