@@ -26,19 +26,19 @@ router.get('/download', async (req, res, next) => {
     
     switch (platform) {
       case 'youtube':
-        return youtubeController.downloadVideo(url, format, quality, res);
+        return youtubeController.downloadVideo(req, res);
       case 'tiktok':
-        return tiktokController.downloadVideo(url, format, res);
+        return tiktokController.downloadVideo(req, res);
       case 'instagram':
-        return instagramController.downloadVideo(url, format, res, req);
+        return instagramController.downloadVideo(req, res);
       case 'facebook':
-        return facebookController.downloadVideo(url, format, res, req);
+        return facebookController.downloadVideo(req, res);
       case 'vimeo':
-        return vimeoController.downloadVideo(url, format, quality, res);
+        return vimeoController.downloadVideo(req, res);
       case 'twitter':
-        return twitterController.downloadVideo(url, format, quality, res);
+        return twitterController.downloadVideo(req, res);
       case 'pinterest':
-        return pinterestController.downloadVideo(url, format, res, req);
+        return pinterestController.downloadVideo(req, res);
       default:
         return res.status(400).json({ error: 'Unsupported platform' });
     }

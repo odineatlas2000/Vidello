@@ -26,19 +26,19 @@ router.get('/video-info', async (req, res, next) => {
     
     switch (platform) {
       case 'youtube':
-        return youtubeController.getVideoInfo(url, res);
+        return youtubeController.getVideoInfo(req, res);
       case 'tiktok':
-        return tiktokController.getVideoInfo(url, res);
+        return tiktokController.getVideoInfo(req, res);
       case 'instagram':
-        return instagramController.getVideoInfo(url, res);
+        return instagramController.getVideoInfo(req, res);
       case 'facebook':
-        return facebookController.getVideoInfo(url, res);
+        return facebookController.getVideoInfo(req, res);
       case 'vimeo':
-        return vimeoController.getVideoInfo(url, res);
+        return vimeoController.getVideoInfo(req, res);
       case 'twitter':
-        return twitterController.getVideoInfo(url, res);
+        return twitterController.getVideoInfo(req, res);
       case 'pinterest':
-        return pinterestController.getVideoInfo(url, res);
+        return pinterestController.getVideoInfo(req, res);
       default:
         return res.status(400).json({ error: 'Unsupported platform' });
     }
