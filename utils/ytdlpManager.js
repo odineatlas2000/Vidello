@@ -223,7 +223,7 @@ class YtDlpManager {
   }
 
   /**
-   * Execute yt-dlp directly using child_process (Replit fallback)
+   * Execute yt-dlp directly using child_process (Cross-platform fallback)
    */
   async executeDirectYtDlp(url, options = {}) {
     return new Promise((resolve, reject) => {
@@ -243,9 +243,23 @@ class YtDlpManager {
         });
       }
       
-      console.log('🔧 Executing direct yt-dlp:', 'yt-dlp', args.join(' '));
+      // Determine the correct yt-dlp binary path based on platform
+      let ytdlpPath;
+      if (process.env.REPLIT) {
+        // In Replit, use system yt-dlp
+        ytdlpPath = 'yt-dlp';
+      } else if (process.platform === 'win32') {
+        // On Windows, use local yt-dlp.exe
+        const path = require('path');
+        ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+      } else {
+        // On other platforms, try system yt-dlp
+        ytdlpPath = 'yt-dlp';
+      }
       
-      const ytdlp = spawn('yt-dlp', args, {
+      console.log('🔧 Executing direct yt-dlp:', ytdlpPath, args.join(' '));
+      
+      const ytdlp = spawn(ytdlpPath, args, {
         stdio: ['ignore', 'pipe', 'pipe']
       });
       
