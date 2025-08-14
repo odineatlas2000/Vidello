@@ -5,6 +5,7 @@
  */
 
 const { detectPlatform } = require('./platformDetector');
+const { spawn } = require('child_process');
 
 class YtDlpManager {
   constructor() {
@@ -38,15 +39,27 @@ class YtDlpManager {
       const ytDlpExec = require('yt-dlp-exec');
       // For Replit, configure to use system yt-dlp
       if (process.env.REPLIT) {
-        // Set the binary path to system yt-dlp for Replit
-        ytDlpExec.setYtDlpPath('yt-dlp');
-        console.log('🔧 YtDlpManager: Configured for Replit environment with system yt-dlp');
+        try {
+          // Set the binary path to system yt-dlp for Replit
+          ytDlpExec.setYtDlpPath('yt-dlp');
+          console.log('🔧 YtDlpManager: Configured for Replit environment with system yt-dlp');
+        } catch (replitError) {
+          console.warn('⚠️ YtDlpManager: Failed to set Replit yt-dlp path:', replitError.message);
+          // Fallback to direct child_process approach
+          this.useDirectYtDlp = true;
+        }
       }
       this.ytDlpExec = ytDlpExec;
       anyAvailable = true;
       console.log('✅ YtDlpManager: yt-dlp-exec initialized successfully');
     } catch (error) {
       console.warn('⚠️ YtDlpManager: yt-dlp-exec not available:', error.message);
+      // For Replit, try direct yt-dlp approach
+      if (process.env.REPLIT) {
+        this.useDirectYtDlp = true;
+        anyAvailable = true;
+        console.log('🔧 YtDlpManager: Using direct yt-dlp fallback for Replit');
+      }
     }
 
     this.isInitialized = anyAvailable;
@@ -75,10 +88,24 @@ class YtDlpManager {
         return this.formatYtdlCoreInfo(info);
       }
 
-      // For other platforms or if ytdl-core fails, use yt-dlp-exec
-      if (this.ytDlpExec) {
+      // For other platforms or if ytdl-core fails, use yt-dlp-exec or direct yt-dlp
+      if (this.ytDlpExec && !this.useDirectYtDlp) {
         console.log('🎬 Using yt-dlp-exec for video info');
         const info = await this.ytDlpExec(url, {
+          dumpSingleJson: true,
+          noCheckCertificates: true,
+          noWarnings: true,
+          addHeader: this.getHeadersForPlatform(platform),
+          retries: 3,
+          sleepInterval: 1
+        });
+        return this.formatYtDlpInfo(info);
+      }
+
+      // Fallback to direct yt-dlp for Replit
+      if (this.useDirectYtDlp) {
+        console.log('🎬 Using direct yt-dlp for video info');
+        const info = await this.executeDirectYtDlp(url, {
           dumpSingleJson: true,
           noCheckCertificates: true,
           noWarnings: true,
@@ -187,6 +214,63 @@ class YtDlpManager {
       default:
         return commonHeaders;
     }
+  }
+
+  /**
+   * Execute yt-dlp directly using child_process (Replit fallback)
+   */
+  async executeDirectYtDlp(url, options = {}) {
+    return new Promise((resolve, reject) => {
+      const args = [url];
+      
+      // Add options as command line arguments
+      if (options.dumpSingleJson) args.push('--dump-single-json');
+      if (options.noCheckCertificates) args.push('--no-check-certificates');
+      if (options.noWarnings) args.push('--no-warnings');
+      if (options.retries) args.push('--retries', options.retries.toString());
+      if (options.sleepInterval) args.push('--sleep-interval', options.sleepInterval.toString());
+      
+      // Add headers
+      if (options.addHeader && Array.isArray(options.addHeader)) {
+        options.addHeader.forEach(header => {
+          args.push('--add-header', header);
+        });
+      }
+      
+      console.log('🔧 Executing direct yt-dlp:', 'yt-dlp', args.join(' '));
+      
+      const ytdlp = spawn('yt-dlp', args, {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      ytdlp.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      ytdlp.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      ytdlp.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const info = JSON.parse(stdout);
+            resolve(info);
+          } catch (parseError) {
+            reject(new Error(`Failed to parse yt-dlp output: ${parseError.message}`));
+          }
+        } else {
+          reject(new Error(`yt-dlp failed with code ${code}: ${stderr}`));
+        }
+      });
+      
+      ytdlp.on('error', (error) => {
+        reject(new Error(`Failed to spawn yt-dlp: ${error.message}`));
+      });
+    });
   }
 
   /**

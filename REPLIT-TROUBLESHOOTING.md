@@ -9,7 +9,60 @@ Twitter extraction error: Error: Failed to extract twitter video information: Co
 
 This means yt-dlp-exec is trying to use a bundled binary that doesn't exist in Replit's environment.
 
-### Solution Steps:
+## Quick Fix for Nix Environment Issues
+
+If you're getting Nix build errors like "couldn't get nix env building nix env: exit status 1", follow these steps:
+
+### Option 1: Use Simplified Nix Configuration
+
+1. **Replace replit.nix** with the simplified version:
+   ```bash
+   cp replit-simple.nix replit.nix
+   ```
+
+2. **Run the setup script** in the Shell:
+   ```bash
+   chmod +x setup-replit.sh
+   ./setup-replit.sh
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Start the server**:
+   ```bash
+   npm start
+   ```
+
+### Option 2: Manual Setup (If Nix completely fails)
+
+1. **Install yt-dlp manually**:
+   ```bash
+   pip3 install --user yt-dlp
+   export PATH="$HOME/.local/bin:$PATH"
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+   ```
+
+2. **Set environment variables** in Replit Secrets:
+   ```
+   REPLIT=true
+   NODE_ENV=production
+   PORT=3000
+   ```
+
+3. **Install Node dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Start the server**:
+   ```bash
+   npm start
+   ```
+
+### Solution Steps (Original Method):
 
 #### 1. Verify System Dependencies
 In your Replit Shell, run:
