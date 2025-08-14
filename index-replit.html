@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidGrabber - Replit Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .loading {
+            display: none;
+        }
+        .loading.active {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-download mr-3"></i>
+                VidGrabber
+            </h1>
+            <p class="text-xl opacity-90">Replit Edition - Download videos from any platform</p>
+            <div class="mt-4 text-sm opacity-75">
+                <i class="fas fa-server mr-1"></i>
+                Powered by Replit
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- URL Input Section -->
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 card-hover">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">
+                    <i class="fas fa-link mr-2 text-blue-500"></i>
+                    Enter Video URL
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <input 
+                            type="url" 
+                            id="videoUrl" 
+                            placeholder="Paste your video URL here (YouTube, Twitter, Instagram, TikTok, etc.)" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex-1 min-w-32">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                            <select id="format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="mp4">Video (MP4)</option>
+                                <option value="audio">Audio Only</option>
+                                <option value="webm">Video (WebM)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex-1 min-w-32">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Quality</label>
+                            <select id="quality" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Best Available</option>
+                                <option value="1080">1080p</option>
+                                <option value="720">720p</option>
+                                <option value="480">480p</option>
+                                <option value="360">360p</option>
+                                <option value="240">240p</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button 
+                            onclick="getVideoInfo()" 
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                        >
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Get Info
+                            <span class="loading ml-2">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </button>
+                        
+                        <button 
+                            onclick="downloadVideo()" 
+                            class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                        >
+                            <i class="fas fa-download mr-2"></i>
+                            Download
+                            <span class="loading ml-2">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Info Display -->
+            <div id="videoInfo" class="bg-white rounded-lg shadow-lg p-6 mb-8 card-hover" style="display: none;">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">
+                    <i class="fas fa-video mr-2 text-purple-500"></i>
+                    Video Information
+                </h3>
+                <div id="videoInfoContent"></div>
+            </div>
+
+            <!-- Supported Platforms -->
+            <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">
+                    <i class="fas fa-globe mr-2 text-green-500"></i>
+                    Supported Platforms
+                </h3>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-3 bg-red-50 rounded-lg">
+                        <i class="fab fa-youtube text-2xl text-red-500 mb-2"></i>
+                        <div class="text-sm font-medium">YouTube</div>
+                    </div>
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <i class="fab fa-twitter text-2xl text-blue-500 mb-2"></i>
+                        <div class="text-sm font-medium">Twitter/X</div>
+                    </div>
+                    <div class="text-center p-3 bg-pink-50 rounded-lg">
+                        <i class="fab fa-instagram text-2xl text-pink-500 mb-2"></i>
+                        <div class="text-sm font-medium">Instagram</div>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded-lg">
+                        <i class="fab fa-tiktok text-2xl text-gray-800 mb-2"></i>
+                        <div class="text-sm font-medium">TikTok</div>
+                    </div>
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <i class="fab fa-facebook text-2xl text-blue-600 mb-2"></i>
+                        <div class="text-sm font-medium">Facebook</div>
+                    </div>
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <i class="fab fa-vimeo text-2xl text-blue-500 mb-2"></i>
+                        <div class="text-sm font-medium">Vimeo</div>
+                    </div>
+                    <div class="text-center p-3 bg-red-50 rounded-lg">
+                        <i class="fab fa-pinterest text-2xl text-red-500 mb-2"></i>
+                        <div class="text-sm font-medium">Pinterest</div>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded-lg">
+                        <i class="fas fa-plus text-2xl text-gray-500 mb-2"></i>
+                        <div class="text-sm font-medium">More...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">
+                <i class="fas fa-code mr-1"></i>
+                Built with ❤️ for Replit
+            </p>
+            <p class="text-sm text-gray-400">
+                <i class="fas fa-shield-alt mr-1"></i>
+                Secure • Fast • Reliable
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="fixed top-4 right-4 z-50" style="display: none;">
+        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-lg p-4 max-w-sm">
+            <div class="flex items-center">
+                <i id="toastIcon" class="fas fa-info-circle text-blue-500 mr-3"></i>
+                <div>
+                    <p id="toastTitle" class="font-semibold text-gray-800"></p>
+                    <p id="toastMessage" class="text-sm text-gray-600"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get the current Replit URL or use localhost for development
+        const API_BASE = window.location.origin;
+        
+        function showToast(title, message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const titleEl = document.getElementById('toastTitle');
+            const messageEl = document.getElementById('toastMessage');
+            
+            const icons = {
+                info: 'fas fa-info-circle text-blue-500',
+                success: 'fas fa-check-circle text-green-500',
+                error: 'fas fa-exclamation-circle text-red-500',
+                warning: 'fas fa-exclamation-triangle text-yellow-500'
+            };
+            
+            icon.className = icons[type] || icons.info;
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+        
+        function setLoading(buttonText, isLoading) {
+            const button = event.target;
+            const loading = button.querySelector('.loading');
+            
+            if (isLoading) {
+                button.disabled = true;
+                loading.classList.add('active');
+            } else {
+                button.disabled = false;
+                loading.classList.remove('active');
+            }
+        }
+        
+        async function getVideoInfo() {
+            const url = document.getElementById('videoUrl').value.trim();
+            
+            if (!url) {
+                showToast('Error', 'Please enter a video URL', 'error');
+                return;
+            }
+            
+            setLoading('Get Info', true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/video-info?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayVideoInfo(data);
+                    showToast('Success', 'Video information retrieved successfully', 'success');
+                } else {
+                    showToast('Error', data.message || 'Failed to get video info', 'error');
+                }
+            } catch (error) {
+                showToast('Error', 'Network error: ' + error.message, 'error');
+            } finally {
+                setLoading('Get Info', false);
+            }
+        }
+        
+        function displayVideoInfo(data) {
+            const infoDiv = document.getElementById('videoInfo');
+            const contentDiv = document.getElementById('videoInfoContent');
+            
+            const html = `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Title</h4>
+                        <p class="text-gray-600 mb-4">${data.title || 'N/A'}</p>
+                        
+                        <h4 class="font-semibold text-gray-800 mb-2">Duration</h4>
+                        <p class="text-gray-600 mb-4">${formatDuration(data.duration) || 'N/A'}</p>
+                        
+                        <h4 class="font-semibold text-gray-800 mb-2">Uploader</h4>
+                        <p class="text-gray-600">${data.uploader || 'N/A'}</p>
+                    </div>
+                    <div>
+                        ${data.thumbnail ? `<img src="${data.thumbnail}" alt="Thumbnail" class="w-full rounded-lg shadow-md">` : ''}
+                    </div>
+                </div>
+            `;
+            
+            contentDiv.innerHTML = html;
+            infoDiv.style.display = 'block';
+        }
+        
+        function formatDuration(seconds) {
+            if (!seconds) return null;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        async function downloadVideo() {
+            const url = document.getElementById('videoUrl').value.trim();
+            const format = document.getElementById('format').value;
+            const quality = document.getElementById('quality').value;
+            
+            if (!url) {
+                showToast('Error', 'Please enter a video URL', 'error');
+                return;
+            }
+            
+            setLoading('Download', true);
+            
+            try {
+                let downloadUrl = `${API_BASE}/api/download?url=${encodeURIComponent(url)}&format=${format}`;
+                if (quality) {
+                    downloadUrl += `&quality=${quality}`;
+                }
+                
+                // Create a temporary link to trigger download
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('Success', 'Download started! Check your downloads folder.', 'success');
+            } catch (error) {
+                showToast('Error', 'Download failed: ' + error.message, 'error');
+            } finally {
+                setLoading('Download', false);
+            }
+        }
+        
+        // Auto-focus URL input on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('videoUrl').focus();
+        });
+        
+        // Handle Enter key in URL input
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getVideoInfo();
+            }
+        });
+    </script>
+</body>
+</html>

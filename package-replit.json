@@ -1,0 +1,50 @@
+{
+  "name": "vidgrabber-replit",
+  "version": "1.0.0",
+  "description": "Download videos from various social media platforms - Replit Compatible",
+  "main": "server-replit.js",
+  "scripts": {
+    "start": "node server-replit.js",
+    "dev": "nodemon server-replit.js",
+    "replit": "node server-replit.js"
+  },
+  "keywords": [
+    "video",
+    "downloader",
+    "youtube",
+    "facebook",
+    "instagram",
+    "twitter",
+    "tiktok",
+    "vimeo",
+    "replit"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "axios": "^1.9.0",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "morgan": "^1.10.1",
+    "yt-dlp-exec": "^1.0.2",
+    "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/vidgrabber-replit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/vidgrabber-replit/issues"
+  },
+  "homepage": "https://github.com/your-username/vidgrabber-replit#readme"
+}
