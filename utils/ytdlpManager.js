@@ -34,39 +34,50 @@ class YtDlpManager {
       }
     }
 
-    // Try to load yt-dlp-exec for other platforms (Replit compatible)
+    // Try to load yt-dlp-exec for other platforms
     try {
       const ytDlpExec = require('yt-dlp-exec');
-      // For Replit, configure to use system yt-dlp
+      
+      // Configure yt-dlp-exec based on environment
       if (process.env.REPLIT) {
         try {
-          // Set the binary path to system yt-dlp for Replit
+          // For Replit, try to use system yt-dlp
           ytDlpExec.setYtDlpPath('yt-dlp');
           console.log('🔧 YtDlpManager: Configured for Replit environment with system yt-dlp');
         } catch (replitError) {
-          console.warn('⚠️ YtDlpManager: Failed to set Replit yt-dlp path:', replitError.message);
-          // Fallback to direct child_process approach
+          console.warn('⚠️ YtDlpManager: Failed to set Replit yt-dlp path, using direct approach:', replitError.message);
+          this.useDirectYtDlp = true;
+        }
+      } else if (process.platform === 'win32') {
+        // For Windows, check if local yt-dlp.exe exists
+        const path = require('path');
+        const fs = require('fs');
+        const localYtDlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+        if (fs.existsSync(localYtDlpPath)) {
+          try {
+            ytDlpExec.setYtDlpPath(localYtDlpPath);
+            console.log('🔧 YtDlpManager: Using local yt-dlp.exe for Windows');
+          } catch (winError) {
+            console.warn('⚠️ YtDlpManager: Failed to set Windows yt-dlp path, using direct approach:', winError.message);
+            this.useDirectYtDlp = true;
+          }
+        } else {
+          console.warn('⚠️ YtDlpManager: Local yt-dlp.exe not found, using direct approach');
           this.useDirectYtDlp = true;
         }
       }
+      
       this.ytDlpExec = ytDlpExec;
       anyAvailable = true;
       console.log('✅ YtDlpManager: yt-dlp-exec initialized successfully');
     } catch (error) {
-      console.warn('⚠️ YtDlpManager: yt-dlp-exec not available:', error.message);
-      // For Replit, try direct yt-dlp approach
-      if (process.env.REPLIT) {
-        this.useDirectYtDlp = true;
-        anyAvailable = true;
-        console.log('🔧 YtDlpManager: Using direct yt-dlp fallback for Replit');
-      }
+      console.warn('⚠️ YtDlpManager: yt-dlp-exec not available, using direct yt-dlp:', error.message);
+      this.useDirectYtDlp = true;
     }
 
-    this.isInitialized = anyAvailable;
-    console.log(`🔍 YtDlpManager: isInitialized = ${this.isInitialized}, anyAvailable = ${anyAvailable}`);
-    if (!anyAvailable) {
-      console.error('❌ YtDlpManager: No video downloaders available');
-    }
+    // Always consider direct yt-dlp as available for fallback
+    this.isInitialized = anyAvailable || this.useDirectYtDlp || true;
+    console.log(`🔍 YtDlpManager: isInitialized = ${this.isInitialized}, useDirectYtDlp = ${this.useDirectYtDlp}`);
   }
 
   /**
@@ -243,24 +254,37 @@ class YtDlpManager {
         });
       }
       
-      // Determine the correct yt-dlp binary path based on platform
+      // Determine the correct yt-dlp binary path based on environment
       let ytdlpPath;
+      const path = require('path');
+      const fs = require('fs');
+      
       if (process.env.REPLIT) {
         // In Replit, use system yt-dlp
         ytdlpPath = 'yt-dlp';
+        console.log('🔧 Using system yt-dlp for Replit environment');
       } else if (process.platform === 'win32') {
-        // On Windows, use local yt-dlp.exe
-        const path = require('path');
-        ytdlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+        // On Windows, prefer local yt-dlp.exe if it exists
+        const localYtDlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
+        if (fs.existsSync(localYtDlpPath)) {
+          ytdlpPath = localYtDlpPath;
+          console.log('🔧 Using local yt-dlp.exe for Windows');
+        } else {
+          // Fallback to system yt-dlp on Windows
+          ytdlpPath = 'yt-dlp';
+          console.log('🔧 Using system yt-dlp for Windows (local exe not found)');
+        }
       } else {
-        // On other platforms, try system yt-dlp
+        // On other platforms, use system yt-dlp
         ytdlpPath = 'yt-dlp';
+        console.log('🔧 Using system yt-dlp for Unix-like system');
       }
       
-      console.log('🔧 Executing direct yt-dlp:', ytdlpPath, args.join(' '));
+      console.log('🚀 Executing direct yt-dlp:', ytdlpPath, args.slice(0, 3).join(' '), '...');
       
       const ytdlp = spawn(ytdlpPath, args, {
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
+        shell: process.platform === 'win32' // Use shell on Windows for better compatibility
       });
       
       let stdout = '';
@@ -278,17 +302,25 @@ class YtDlpManager {
         if (code === 0) {
           try {
             const info = JSON.parse(stdout);
+            console.log('✅ Direct yt-dlp execution successful');
             resolve(info);
           } catch (parseError) {
+            console.error('❌ Failed to parse yt-dlp JSON output:', parseError.message);
             reject(new Error(`Failed to parse yt-dlp output: ${parseError.message}`));
           }
         } else {
+          console.error('❌ yt-dlp execution failed:', stderr);
           reject(new Error(`yt-dlp failed with code ${code}: ${stderr}`));
         }
       });
       
       ytdlp.on('error', (error) => {
-        reject(new Error(`Failed to spawn yt-dlp: ${error.message}`));
+        console.error('❌ Failed to spawn yt-dlp process:', error.message);
+        if (error.code === 'ENOENT') {
+          reject(new Error(`yt-dlp executable not found at path: ${ytdlpPath}. Please ensure yt-dlp is installed and accessible.`));
+        } else {
+          reject(new Error(`Failed to spawn yt-dlp: ${error.message}`));
+        }
       });
     });
   }

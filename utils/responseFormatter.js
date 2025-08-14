@@ -31,7 +31,32 @@ function formatSuccess(data, message = 'Success') {
   };
 }
 
+/**
+ * Format video info response
+ * @param {Object} videoInfo - Video information from yt-dlp
+ * @param {string} platform - Platform name
+ * @returns {Object} - Formatted video info response
+ */
+function formatResponse(videoInfo, platform) {
+  if (!videoInfo) {
+    throw new Error('Video info is required');
+  }
+
+  return {
+    platform: platform || 'unknown',
+    title: videoInfo.title || 'Unknown Title',
+    thumbnail: videoInfo.thumbnail || null,
+    duration: videoInfo.duration || null,
+    uploader: videoInfo.uploader || null,
+    upload_date: videoInfo.upload_date || null,
+    view_count: videoInfo.view_count || null,
+    formats: videoInfo.formats || [],
+    url: videoInfo.webpage_url || videoInfo.original_url || null
+  };
+}
+
 module.exports = {
   formatError,
-  formatSuccess
+  formatSuccess,
+  formatResponse
 };

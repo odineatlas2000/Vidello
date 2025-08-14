@@ -1,189 +1,240 @@
-# VidGrabber - Replit Backend
+# Video Downloader - Replit Setup Guide
 
-A powerful video downloader backend optimized for Replit deployment. Download videos from YouTube, Twitter/X, Instagram, TikTok, Facebook, Vimeo, and more!
+This guide provides comprehensive instructions for deploying and running the video downloader application on Replit with proper yt-dlp integration.
 
-## 🚀 Quick Start on Replit
+## 🚀 Quick Setup for Replit
 
-### Method 1: Import from GitHub
-1. Fork this repository to your GitHub account
-2. Go to [Replit](https://replit.com)
-3. Click "Create Repl" → "Import from GitHub"
-4. Paste your repository URL
-5. Replit will automatically detect the configuration
+### 1. Environment Setup
 
-### Method 2: Manual Setup
-1. Create a new Node.js Repl on Replit
-2. Upload all the Replit-specific files:
-   - `server-replit.js`
-   - `package-replit.json` (rename to `package.json`)
-   - `replit.nix`
-   - `.replit`
-   - All controller and utility files
-3. Run `npm install` in the Shell
-4. Click the "Run" button
+First, ensure your Replit environment is properly configured:
 
-## 📁 Replit-Specific Files
+```bash
+# Run the setup script to install yt-dlp
+bash setup-replit-ytdlp.sh
+```
 
-### Core Files
-- `server-replit.js` - Main server file optimized for Replit
-- `package-replit.json` - Dependencies and scripts for Replit
-- `replit.nix` - System dependencies (yt-dlp, ffmpeg, etc.)
-- `.replit` - Replit configuration
-- `utils/ytdlpManager-replit.js` - Video downloader manager for Linux
-- `controllers/*-replit.js` - Platform-specific controllers
+### 2. Install Dependencies
 
-### Key Differences from Local Version
-- **CORS Configuration**: Allows Replit domains (`.replit.dev`, `.repl.co`)
-- **Port Binding**: Uses `0.0.0.0` for external access
-- **Binary Dependencies**: Uses system yt-dlp instead of Windows executable
-- **Environment Variables**: Optimized for Replit's environment
+```bash
+npm install
+```
+
+### 3. Start the Application
+
+```bash
+npm run replit
+```
+
+The application will be available at your Replit URL (typically `https://your-repl-name.your-username.repl.co`).
+
+## 🔧 Manual yt-dlp Installation (if setup script fails)
+
+If the automatic setup script doesn't work, follow these manual steps:
+
+### Option 1: Using pip (Recommended)
+
+```bash
+# Update system packages
+sudo apt-get update
+
+# Install Python and pip
+sudo apt-get install -y python3 python3-pip
+
+# Install yt-dlp
+pip3 install --user yt-dlp
+
+# Add to PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify installation
+yt-dlp --version
+```
+
+### Option 2: Direct Download
+
+```bash
+# Download yt-dlp binary
+wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O yt-dlp
+chmod +x yt-dlp
+
+# Move to system path
+sudo mv yt-dlp /usr/local/bin/
+
+# Verify installation
+yt-dlp --version
+```
+
+## 🐛 Troubleshooting Common Issues
+
+### Issue 1: `ENOENT` Error - yt-dlp not found
+
+**Symptoms:**
+- Error: `Command failed with ENOENT`
+- yt-dlp executable not found
+
+**Solutions:**
+
+1. **Check if yt-dlp is installed:**
+   ```bash
+   which yt-dlp
+   yt-dlp --version
+   ```
+
+2. **If not found, install using pip:**
+   ```bash
+   pip3 install --user yt-dlp
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
+3. **Check PATH configuration:**
+   ```bash
+   echo $PATH
+   # Should include /home/runner/.local/bin
+   ```
+
+4. **Manual PATH fix:**
+   ```bash
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+### Issue 2: `formatResponse is not a function`
+
+**Symptoms:**
+- TypeError: formatResponse is not a function
+- API returns 500 error
+
+**Solution:**
+This should be automatically resolved with the updated code. The `formatResponse` function is now properly exported from `utils/responseFormatter.js`.
+
+### Issue 3: Permission Denied
+
+**Symptoms:**
+- Permission denied when executing yt-dlp
+
+**Solutions:**
+
+1. **Make yt-dlp executable:**
+   ```bash
+   chmod +x $(which yt-dlp)
+   ```
+
+2. **If using local binary:**
+   ```bash
+   chmod +x ./yt-dlp
+   ```
+
+### Issue 4: Network/Firewall Issues
+
+**Symptoms:**
+- Timeouts when downloading video info
+- Connection refused errors
+
+**Solutions:**
+
+1. **Check Replit's network policies**
+2. **Try different video URLs**
+3. **Check if the platform is supported**
+
+## 📋 Supported Platforms
+
+- ✅ YouTube
+- ✅ Twitter/X
+- ✅ TikTok
+- ✅ Instagram
+- ✅ Facebook
+- ✅ Vimeo
+- ✅ Pinterest
+
+## 🔍 Testing the Installation
+
+### Test yt-dlp directly:
+
+```bash
+# Test with a YouTube video
+yt-dlp --dump-single-json "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+# Test with Twitter
+yt-dlp --dump-single-json "https://twitter.com/example/status/123456789"
+```
+
+### Test the API:
+
+```bash
+# Test video info endpoint
+curl "https://your-repl-url.repl.co/api/video-info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
 
 ## 🔧 Configuration
 
 ### Environment Variables
-Create a `.env` file or use Replit's Secrets tab:
 
-```env
-PORT=3000
-NODE_ENV=production
-```
+The application automatically detects Replit environment. You can also manually set:
 
-### Replit Secrets (Recommended)
-1. Go to your Repl
-2. Click on "Secrets" tab (lock icon)
-3. Add any API keys or sensitive configuration
-
-## 🌐 API Endpoints
-
-### Get Video Information
-```
-GET /api/video-info?url={VIDEO_URL}
-```
-
-**Example:**
 ```bash
-curl "https://your-repl-name.your-username.repl.co/api/video-info?url=https://twitter.com/user/status/123456789"
+export REPLIT=true
 ```
 
-### Download Video
+### Custom yt-dlp Path
+
+If you need to use a custom yt-dlp installation:
+
+1. Edit `utils/ytdlpManager.js`
+2. Modify the path detection logic in the `executeDirectYtDlp` method
+
+## 📁 File Structure
+
 ```
-GET /api/download?url={VIDEO_URL}&format={FORMAT}&quality={QUALITY}
-```
-
-**Parameters:**
-- `url` (required): Video URL
-- `format` (optional): `mp4`, `webm`, `audio`, `mp3`
-- `quality` (optional): `144`, `240`, `360`, `480`, `720`, `1080`
-
-**Example:**
-```bash
-curl "https://your-repl-name.your-username.repl.co/api/download?url=https://twitter.com/user/status/123456789&format=mp4&quality=720"
-```
-
-## 🎯 Supported Platforms
-
-| Platform | Video Download | Audio Download | Quality Selection |
-|----------|----------------|----------------|-----------------|
-| YouTube | ✅ | ✅ | ✅ |
-| Twitter/X | ✅ | ✅ | ✅ |
-| Instagram | ✅ | ✅ | ✅ |
-| TikTok | ✅ | ✅ | ✅ |
-| Facebook | ✅ | ✅ | ✅ |
-| Vimeo | ✅ | ✅ | ✅ |
-| Pinterest | ✅ | ✅ | ❌ |
-
-## 🛠️ Development
-
-### Local Testing
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Start production server
-npm start
+├── utils/
+│   ├── ytdlpManager.js          # Main yt-dlp integration
+│   ├── responseFormatter.js     # Response formatting utilities
+│   └── platformDetector.js      # Platform detection
+├── controllers/
+│   ├── twitterController.js     # Twitter-specific handling
+│   └── ...                      # Other platform controllers
+├── routes/
+│   ├── videoInfo.js            # Video info API routes
+│   └── download.js             # Download API routes
+├── server-replit.js            # Replit-optimized server
+├── package-replit.json         # Replit-specific dependencies
+└── setup-replit-ytdlp.sh      # Automated setup script
 ```
 
-### Debugging on Replit
-1. Use the built-in debugger
-2. Check the Console tab for logs
-3. Monitor the Shell for system-level issues
-4. Use `console.log()` statements for debugging
+## 🚨 Important Notes
 
-## 🔍 Troubleshooting
+1. **Replit Limitations:**
+   - Some video platforms may be blocked by Replit's network policies
+   - Large video downloads may timeout
+   - Storage space is limited
 
-### Common Issues
+2. **Rate Limiting:**
+   - Be mindful of API rate limits from video platforms
+   - Implement appropriate delays between requests
 
-**1. "yt-dlp not found" Error**
-- Ensure `replit.nix` includes `pkgs.yt-dlp`
-- Restart your Repl to reload system dependencies
+3. **Legal Considerations:**
+   - Ensure you comply with platform terms of service
+   - Respect copyright and intellectual property rights
 
-**2. CORS Errors**
-- Check that your frontend domain is allowed in `server-replit.js`
-- Add your custom domain to the CORS whitelist
-
-**3. Download Failures**
-- Some platforms may block requests from Replit IPs
-- Try different video URLs to test
-- Check the Console for specific error messages
-
-**4. Memory Issues**
-- Large video downloads may exceed Replit's memory limits
-- Consider implementing streaming optimizations
-- Use lower quality settings for testing
-
-### Performance Tips
-
-1. **Keep Your Repl Active**: Use a service like UptimeRobot to ping your Repl
-2. **Optimize Dependencies**: Remove unused packages from `package.json`
-3. **Use Caching**: Implement response caching for video info requests
-4. **Monitor Resources**: Check CPU and memory usage in Replit's dashboard
-
-## 🔒 Security Considerations
-
-- Never commit API keys or secrets to your repository
-- Use Replit's Secrets feature for sensitive data
-- Implement rate limiting for production use
-- Validate and sanitize all user inputs
-- Consider implementing authentication for private use
-
-## 📊 Monitoring
-
-### Health Check Endpoint
-```
-GET /health
-```
-
-Returns server status and available downloaders:
-```json
-{
-  "status": "OK",
-  "message": "Server is running",
-  "downloaders": ["ytdl-core", "yt-dlp-exec"],
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Test your changes on Replit
-4. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🆘 Support
+## 🆘 Getting Help
 
 If you encounter issues:
-1. Check the troubleshooting section above
-2. Review Replit's documentation
-3. Open an issue on GitHub
-4. Join the Replit community forums
+
+1. Check the console logs for detailed error messages
+2. Verify yt-dlp installation: `yt-dlp --version`
+3. Test with different video URLs
+4. Check Replit's system status
+5. Review the troubleshooting section above
+
+## 📝 Changelog
+
+### Latest Updates
+- ✅ Fixed ENOENT error with improved yt-dlp path detection
+- ✅ Added formatResponse function to responseFormatter.js
+- ✅ Enhanced error handling and logging
+- ✅ Improved Replit environment detection
+- ✅ Added comprehensive setup script
+- ✅ Better fallback mechanisms for yt-dlp-exec failures
 
 ---
 
