@@ -11,23 +11,18 @@ const downloadRoutes = require('./routes/download');
 
 const app = express();
 
-const args = process.argv.slice(2);
-let port = process.env.PORT || 3004;
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--port' && i + 1 < args.length) {
-    port = parseInt(args[i + 1], 10);
-    break;
-  } else if (args[i].startsWith('--port=')) {
-    port = parseInt(args[i].split('=')[1], 10);
-    break;
-  }
-}
-const PORT = port;
+// Replit-compatible port configuration
+const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Replit-compatible CORS configuration
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin.startsWith('http://localhost:')) {
+    // Allow Replit domains and localhost for development
+    if (!origin || 
+        origin.includes('.replit.dev') || 
+        origin.includes('.repl.co') || 
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('https://localhost:')) {
       return callback(null, true);
     }
     callback(new Error('Not allowed by CORS'));
@@ -36,10 +31,12 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Serve static files
 app.use(express.static(path.join(__dirname, '/')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -49,18 +46,31 @@ app.get('/', (req, res) => {
 app.use('/api', videoInfoRoutes);
 app.use('/api', downloadRoutes);
 
+// Health check endpoint for Replit
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is running' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  console.error('Error:', err.message);
   res.status(500).json({ 
-    error: 'Something went wrong!', 
-    message: err.message 
+    error: 'Internal Server Error', 
+    message: 'Something went wrong on the server' 
   });
 });
 
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Not Found', message: 'Route not found' });
 });
 
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 Access your app at: http://localhost:${PORT}`);
+  if (process.env.REPL_SLUG) {
+    console.log(`🌐 Replit URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+  }
+});
+
+module.exports = app;

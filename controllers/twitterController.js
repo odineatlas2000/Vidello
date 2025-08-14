@@ -1,96 +1,44 @@
-// Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
-console.log('✅ Twitter controller: Using centralized YtDlpManager');
+/**
+ * Twitter Controller - Replit Compatible Version
+ * Handles Twitter/X video downloads and information retrieval
+ */
+
+const ytdlpManager = require('../utils/ytdlpManager-replit');
+const { formatResponse } = require('../utils/responseFormatter');
 
 /**
  * Get Twitter video information
  */
-async function getVideoInfo(url, res) {
+async function getVideoInfo(req, res) {
   try {
-    console.log('Getting Twitter video info for URL:', url);
+    const { url } = req.query;
     
-    if (!ytdlpManager.isReady()) {
-      return res.status(500).json({ 
-        error: 'Twitter video downloader not available',
-        details: 'YtDlpManager is not properly initialized'
+    if (!url) {
+      return res.status(400).json({
+        error: 'Missing URL parameter',
+        message: 'Please provide a Twitter URL'
       });
     }
+
+    console.log('🐦 Getting Twitter video info for:', url);
     
-    // Use centralized manager to get video information
-    const info = await ytdlpManager.getVideoInfo(url);
-    
-    console.log('Twitter video info retrieved successfully');
-    
-    // Format the response with available formats
-    const formats = [];
-    if (info.formats && info.formats.length > 0) {
-      // Extract unique quality options
-      const qualitySet = new Set();
-      info.formats.forEach(format => {
-        if (format.height && format.hasVideo) {
-          qualitySet.add(`${format.height}p`);
-        }
-      });
-      
-      // Convert to format objects
-      Array.from(qualitySet).sort((a, b) => {
-        const aHeight = parseInt(a);
-        const bHeight = parseInt(b);
-        return bHeight - aHeight; // Descending order
-      }).forEach(quality => {
-        formats.push({
-          quality: quality,
-          formatId: quality.replace('p', ''),
-          hasAudio: true,
-          hasVideo: true
-        });
+    // Validate Twitter URL
+    if (!isValidTwitterUrl(url)) {
+      return res.status(400).json({
+        error: 'Invalid Twitter URL',
+        message: 'Please provide a valid Twitter/X URL'
       });
     }
+
+    const videoInfo = await ytdlpManager.getVideoInfo(url);
+    const formattedResponse = formatResponse(videoInfo, 'twitter');
     
-    // Add default format if no specific formats found
-    if (formats.length === 0) {
-      formats.push({
-        quality: 'Best Available',
-        formatId: 'best',
-        hasAudio: true,
-        hasVideo: true
-      });
-    }
-    
-    return res.json({
-      platform: 'twitter',
-      title: info.title || 'Twitter Video',
-      thumbnail: info.thumbnail || 'https://via.placeholder.com/640x360?text=Twitter+Video',
-      duration: info.duration ? Math.floor(info.duration) : 0,
-      formats: formats
-    });
+    res.json(formattedResponse);
   } catch (error) {
-    console.error('Twitter extraction error:', error);
-    
-    // Check for common Twitter errors
-    if (error.message && error.message.includes('private')) {
-      return res.status(403).json({
-        error: 'Private Twitter account',
-        message: 'This Twitter account is private and the video cannot be downloaded.',
-        details: error.message
-      });
-    } else if (error.message && error.message.includes('suspended')) {
-      return res.status(403).json({
-        error: 'Suspended Twitter account',
-        message: 'This Twitter account has been suspended.',
-        details: error.message
-      });
-    } else if (error.message && error.message.includes('not found')) {
-      return res.status(404).json({
-        error: 'Twitter video not found',
-        message: 'The Twitter video was not found. It may have been deleted.',
-        details: error.message
-      });
-    }
-    
-    return res.status(500).json({
-      error: 'Failed to get Twitter video information',
-      message: 'There was an error processing the Twitter video. Please check the URL and try again.',
+    console.error('❌ Twitter info error:', error.message);
+    res.status(500).json({
+      error: 'Failed to get Twitter video info',
+      message: 'There was an error retrieving the Twitter video information. Please try again.',
       details: error.message
     });
   }
@@ -99,72 +47,74 @@ async function getVideoInfo(url, res) {
 /**
  * Download Twitter video
  */
-async function downloadVideo(url, format, quality, res) {
+async function downloadVideo(req, res) {
   try {
-    console.log(`Downloading Twitter video: ${url}, format: ${format}, quality: ${quality}`);
+    const { url, format = 'mp4', quality } = req.query;
     
-    if (!ytdlpManager.isReady()) {
-      return res.status(500).json({ 
-        error: 'Twitter video downloader not available',
-        details: 'YtDlpManager is not properly initialized'
+    if (!url) {
+      return res.status(400).json({
+        error: 'Missing URL parameter',
+        message: 'Please provide a Twitter URL'
       });
     }
+
+    console.log('🐦 Downloading Twitter video:', { url, format, quality });
     
-    // Set response headers for download
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Disposition', 'attachment; filename="twitter_video.mp4"');
-    
-    // Prepare download options
-    let downloadOptions = {
-      format: 'best[ext=mp4]', // Default to best MP4 format
-      output: '-' // Stream to stdout
-    };
-    
-    // Handle quality selection and set response headers
-    if (quality && !isNaN(parseInt(quality, 10))) {
-      const targetHeight = parseInt(quality, 10);
-      downloadOptions.format = `best[height<=${targetHeight}][ext=mp4]/best[ext=mp4]`;
-      console.log(`Twitter: Requesting quality <= ${targetHeight}p`);
-      res.setHeader('Content-Type', 'video/mp4');
-      res.setHeader('Content-Disposition', 'attachment; filename="twitter_video.mp4"');
-    } else if (format === 'audio') {
-      downloadOptions.format = 'bestaudio[ext=m4a]/bestaudio';
-      res.setHeader('Content-Type', 'audio/mp4');
-      res.setHeader('Content-Disposition', 'attachment; filename="twitter_audio.m4a"');
+    // Validate Twitter URL
+    if (!isValidTwitterUrl(url)) {
+      return res.status(400).json({
+        error: 'Invalid Twitter URL',
+        message: 'Please provide a valid Twitter/X URL'
+      });
+    }
+
+    // Set appropriate headers for download
+    if (format === 'audio') {
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Disposition', 'attachment; filename="twitter_audio.mp3"');
     } else {
-      // Default video download
       res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Content-Disposition', 'attachment; filename="twitter_video.mp4"');
     }
     
-    console.log('Twitter download options:', downloadOptions);
+    // Set additional headers for better streaming
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
     
-    // Use centralized manager to download
+    const downloadOptions = {
+      format: format,
+      quality: quality
+    };
+    
     const downloadStream = await ytdlpManager.downloadVideo(url, downloadOptions);
     
+    if (!downloadStream) {
+      throw new Error('Failed to create download stream');
+    }
+    
     // Handle stream events
-    downloadStream.on('error', (err) => {
-      console.error('Twitter download stream error:', err);
+    downloadStream.on('error', (error) => {
+      console.error('❌ Download stream error:', error.message);
       if (!res.headersSent) {
-        res.status(500).json({ 
-          error: 'Failed to download Twitter video', 
-          details: err.message 
+        res.status(500).json({
+          error: 'Download failed',
+          message: 'There was an error during the download. Please try again.',
+          details: error.message
         });
       }
     });
     
     downloadStream.on('end', () => {
-      console.log('Twitter video download completed');
+      console.log('✅ Twitter download completed successfully');
     });
     
     // Pipe the stream to response
     downloadStream.pipe(res);
     
   } catch (error) {
-    console.error('Twitter download error:', error);
-    
+    console.error('❌ Twitter download error:', error.message);
     if (!res.headersSent) {
-      return res.status(500).json({
+      res.status(500).json({
         error: 'Failed to download Twitter video',
         message: 'There was an error downloading the Twitter video. Please try again.',
         details: error.message
@@ -173,7 +123,33 @@ async function downloadVideo(url, format, quality, res) {
   }
 }
 
+/**
+ * Validate Twitter URL
+ */
+function isValidTwitterUrl(url) {
+  const twitterPatterns = [
+    /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/.+\/status\/\d+/i,
+    /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/i\/status\/\d+/i,
+    /^https?:\/\/(mobile\.)?(twitter\.com|x\.com)\/.+\/status\/\d+/i
+  ];
+  
+  return twitterPatterns.some(pattern => pattern.test(url));
+}
+
+/**
+ * Get supported formats for Twitter
+ */
+function getSupportedFormats() {
+  return {
+    video: ['mp4', 'webm'],
+    audio: ['mp3', 'm4a'],
+    qualities: ['144', '240', '360', '480', '720', '1080']
+  };
+}
+
 module.exports = {
   getVideoInfo,
-  downloadVideo
+  downloadVideo,
+  getSupportedFormats,
+  isValidTwitterUrl
 };
