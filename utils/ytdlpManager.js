@@ -90,16 +90,22 @@ class YtDlpManager {
 
       // For other platforms or if ytdl-core fails, use yt-dlp-exec or direct yt-dlp
       if (this.ytDlpExec && !this.useDirectYtDlp) {
-        console.log('🎬 Using yt-dlp-exec for video info');
-        const info = await this.ytDlpExec(url, {
-          dumpSingleJson: true,
-          noCheckCertificates: true,
-          noWarnings: true,
-          addHeader: this.getHeadersForPlatform(platform),
-          retries: 3,
-          sleepInterval: 1
-        });
-        return this.formatYtDlpInfo(info);
+        try {
+          console.log('🎬 Using yt-dlp-exec for video info');
+          const info = await this.ytDlpExec(url, {
+            dumpSingleJson: true,
+            noCheckCertificates: true,
+            noWarnings: true,
+            addHeader: this.getHeadersForPlatform(platform),
+            retries: 3,
+            sleepInterval: 1
+          });
+          return this.formatYtDlpInfo(info);
+        } catch (ytDlpExecError) {
+          console.warn('⚠️ yt-dlp-exec failed, falling back to direct yt-dlp:', ytDlpExecError.message);
+          // Set flag to use direct approach for future calls
+          this.useDirectYtDlp = true;
+        }
       }
 
       // Fallback to direct yt-dlp for Replit
