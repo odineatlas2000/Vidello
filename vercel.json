@@ -2,14 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "server-vercel.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/server-vercel.js"
+      "dest": "/public/$1"
     }
   ],
   "env": {
@@ -17,7 +25,7 @@
     "VERCEL": "true"
   },
   "functions": {
-    "server-vercel.js": {
+    "api/**/*.js": {
       "maxDuration": 30
     }
   }

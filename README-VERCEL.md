@@ -53,8 +53,8 @@ This guide provides comprehensive instructions for deploying your video download
    - Select your video downloader repository
    - Configure deployment settings:
      - **Framework Preset**: `Other`
-     - **Build Command**: `npm install`
-     - **Output Directory**: `./`
+     - **Build Command**: Leave empty (no build needed)
+     - **Output Directory**: Leave empty
      - **Install Command**: `npm install --production`
 
 4. **Environment Variables** (Optional):
@@ -62,6 +62,11 @@ This guide provides comprehensive instructions for deploying your video download
    NODE_ENV=production
    VERCEL=true
    ```
+
+**Important**: The new structure uses Vercel's serverless functions:
+- API endpoints are in `/api/` directory as individual files
+- Static files are served from `/public/` directory
+- Each API route is a separate serverless function
 
 ### Step 3: Vercel Specific Configuration
 

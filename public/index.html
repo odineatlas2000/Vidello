@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidello - Download Videos with Elegance</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hero-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .feature-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-play-circle text-blue-600 text-2xl"></i>
+                    <span class="text-2xl font-bold text-gray-900">Vidello</span>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Features</a>
+                    <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">How It Works</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-gradient py-20">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl md:text-6xl font-bold text-white mb-6">
+                Download Videos with <span class="text-yellow-300">Elegance</span>
+            </h1>
+            <p class="text-xl text-blue-100 mb-12 max-w-3xl mx-auto">
+                A beautifully simple way to download your favorite videos from YouTube, TikTok, Instagram, Facebook, Vimeo, and Twitter. 
+                Just paste a link and we'll handle the rest.
+            </p>
+            
+            <!-- Download Card -->
+            <div class="bg-white rounded-2xl p-8 card-shadow max-w-2xl mx-auto">
+                <div class="space-y-4">
+                    <input 
+                        type="text" 
+                        id="videoUrl" 
+                        placeholder="Paste video URL from any supported platform..." 
+                        class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                    >
+                    <p class="text-sm text-gray-500 text-left">
+                        Supports: YouTube, TikTok, Instagram, Facebook, Vimeo, Twitter, Pinterest
+                    </p>
+                    <button 
+                        id="downloadBtn" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-colors shadow-lg hover:shadow-xl"
+                    >
+                        <span id="btnText">Download Video</span>
+                        <span id="spinner" class="hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose Vidello?</h2>
+                <p class="text-xl text-gray-600">Everything you need for seamless video downloading</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-bolt text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Simple & Fast</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        No complicated options or settings. Just paste your URL and download.
+                    </p>
+                </div>
+                
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-globe text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Multiple Platforms</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Support for YouTube, TikTok, Instagram, Facebook, Vimeo, and Twitter with automatic platform detection.
+                    </p>
+                </div>
+                
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg text-center">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-shield-alt text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Private & Secure</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        We don't store your videos or track what you download. Your privacy comes first.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Supported Platforms Section -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Supported Platforms</h2>
+                <p class="text-lg text-gray-600">Download videos from all your favorite platforms</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 items-center">
+                <!-- YouTube -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-youtube text-red-600 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">YouTube</span>
+                </div>
+                
+                <!-- TikTok -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-tiktok text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">TikTok</span>
+                </div>
+                
+                <!-- Instagram -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-500 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-instagram text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Instagram</span>
+                </div>
+                
+                <!-- Facebook -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-facebook-f text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Facebook</span>
+                </div>
+                
+                <!-- Vimeo -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-vimeo-v text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Vimeo</span>
+                </div>
+                
+                <!-- Twitter -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-twitter text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Twitter</span>
+                </div>
+                
+                <!-- Pinterest -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-3">
+                        <i class="fab fa-pinterest text-white text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Pinterest</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
+                <p class="text-xl text-gray-600">Three simple steps to download any video</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-clipboard text-white text-2xl"></i>
+                    </div>
+                    <div class="bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">Step 1</div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Paste URL</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Copy the video URL from any supported platform and paste it into the input field.
+                    </p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-cogs text-white text-2xl"></i>
+                    </div>
+                    <div class="bg-green-600 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">Step 2</div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Process</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Our system will automatically detect the platform and process the video for download.
+                    </p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-download text-white text-2xl"></i>
+                    </div>
+                    <div class="bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">Step 3</div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">Download</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Click the download button and save the video to your device. It's that simple!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                Ready to download your first video?
+            </h2>
+            <p class="text-xl text-gray-600 mb-8">
+                Start by pasting a video URL from any supported platform in the input field above.
+            </p>
+            <button 
+                onclick="document.getElementById('videoUrl').scrollIntoView({behavior: 'smooth'})" 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+                Go to Downloader
+            </button>
+        </div>
+    </section>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full mx-4 overflow-hidden card-shadow">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-2xl font-semibold text-gray-800">Download Options</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center mb-6">
+                    <img id="videoThumbnail" src="" alt="Video thumbnail" class="w-32 h-24 object-cover rounded-xl mr-4">
+                    <div>
+                        <h4 id="videoTitle" class="font-semibold text-lg text-gray-900"></h4>
+                        <p id="videoDuration" class="text-gray-500"></p>
+                    </div>
+                </div>
+                
+                <h5 class="font-semibold text-gray-700 mb-4 text-lg">Select Format & Quality:</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                    <!-- Download options will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <i class="fas fa-play-circle text-blue-400 text-2xl"></i>
+                <span class="text-2xl font-bold">Vidello</span>
+            </div>
+            <p class="text-gray-400">&copy; 2024 Vidello. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
