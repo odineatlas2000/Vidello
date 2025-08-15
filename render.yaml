@@ -37,18 +37,15 @@ services:
     
     # Environment detection and yt-dlp installation
     preDeployCommand: |
-      echo "Installing yt-dlp for Render.com..."
-      python3 -m pip install --user --upgrade yt-dlp
+      echo "Setting up environment for Render.com..."
       export PATH="$HOME/.local/bin:$PATH"
-      echo "PATH after update: $PATH"
-      echo "Checking yt-dlp installation..."
-      which yt-dlp || echo "yt-dlp not found in PATH"
-      ls -la $HOME/.local/bin/ | grep yt-dlp || echo "yt-dlp not found in .local/bin"
+      echo "PATH updated: $PATH"
+      echo "Note: yt-dlp will be installed dynamically by the application if needed"
+      # Check if yt-dlp is already available
       if command -v yt-dlp >/dev/null 2>&1; then
-        echo "✅ yt-dlp version: $(yt-dlp --version)"
+        echo "✅ yt-dlp already available: $(yt-dlp --version)"
       else
-        echo "❌ yt-dlp installation failed"
-        exit 1
+        echo "ℹ️ yt-dlp not found - will be installed dynamically by the application"
       fi
     
     # Disk storage (for temporary files)
