@@ -16,6 +16,10 @@ services:
           type: web
           name: video-downloader
           property: port
+      - key: PATH
+        value: "$HOME/.local/bin:$PATH"
+      - key: RENDER
+        value: "true"
     healthCheckPath: /
     autoDeploy: true
     branch: main  # Change to your main branch name
@@ -31,12 +35,21 @@ services:
         - "!*.backup"
         - "!.git/**"
     
-    # Environment detection
+    # Environment detection and yt-dlp installation
     preDeployCommand: |
       echo "Installing yt-dlp for Render.com..."
-      python3 -m pip install --user yt-dlp
+      python3 -m pip install --user --upgrade yt-dlp
       export PATH="$HOME/.local/bin:$PATH"
-      echo "yt-dlp version: $(yt-dlp --version)"
+      echo "PATH after update: $PATH"
+      echo "Checking yt-dlp installation..."
+      which yt-dlp || echo "yt-dlp not found in PATH"
+      ls -la $HOME/.local/bin/ | grep yt-dlp || echo "yt-dlp not found in .local/bin"
+      if command -v yt-dlp >/dev/null 2>&1; then
+        echo "✅ yt-dlp version: $(yt-dlp --version)"
+      else
+        echo "❌ yt-dlp installation failed"
+        exit 1
+      fi
     
     # Disk storage (for temporary files)
     disk:
