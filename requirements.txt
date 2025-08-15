@@ -1,2 +1,3 @@
 yt-dlp
-pip install -r requirements.txt
+yt-dlp==2025.8.11
+
