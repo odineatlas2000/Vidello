@@ -711,6 +711,7 @@ class YtDlpManager {
       };
       
       const mergedOptions = { ...defaultOptions, ...options };
+      const platform = detectPlatform(url);
       
       // Try direct yt-dlp execution first
       try {
@@ -718,6 +719,28 @@ class YtDlpManager {
         return result;
       } catch (directError) {
         console.error('❌ Direct yt-dlp failed:', directError.message);
+        
+        // Check if it's an authentication error for YouTube
+        if (platform === 'youtube' && 
+            (directError.message.includes('Sign in to confirm you\'re not a bot') || 
+             directError.message.includes('cookies') ||
+             directError.message.includes('authentication'))) {
+          console.log('🔄 Authentication error detected, trying ytdl-core fallback...');
+          
+          if (this.ytdlCore) {
+            try {
+              console.log('📺 Using ytdl-core fallback for YouTube info');
+              const info = await this.ytdlCore.getInfo(url);
+              return this.formatYtdlCoreInfo(info);
+            } catch (fallbackError) {
+              console.error('❌ ytdl-core fallback also failed:', fallbackError.message);
+              throw new Error(`Both yt-dlp and ytdl-core failed. yt-dlp error: ${directError.message}. ytdl-core error: ${fallbackError.message}`);
+            }
+          } else {
+            console.error('❌ ytdl-core not available for fallback');
+          }
+        }
+        
         throw directError;
       }
     } catch (error) {
