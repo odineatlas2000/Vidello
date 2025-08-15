@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // API endpoint - Always use Render backend for all requests
-    const RENDER_BACKEND_URL = 'https://vidello.onrender.com'; // REPLACE WITH YOUR ACTUAL RENDER URL
+    const RENDER_BACKEND_URL = 'https://vidello.onrender.com'; // Actual Render URL
     const API_URL = `${RENDER_BACKEND_URL}/api`;
     
     // Show loading state
