@@ -18,6 +18,9 @@ const ytdlpManager = require('./utils/ytdlpManager');
 const app = express();
 const PORT = process.env.PORT || 10000; // Render.com default port
 
+// Trust proxy for Render.com (fixes X-Forwarded-For header validation)
+app.set('trust proxy', 1);
+
 // Set environment for Render.com
 process.env.RENDER = 'true';
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
