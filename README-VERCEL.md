@@ -2,14 +2,25 @@
 
 This guide provides comprehensive instructions for deploying your video downloader application on Vercel with proper yt-dlp integration.
 
-## 🌟 Why Vercel?
+## 🌟 Deployment Options
 
+### Option 1: Full Vercel Deployment (Serverless)
 - **Free Tier Available**: Deploy for free with generous limits
 - **Automatic HTTPS**: SSL certificates included
 - **Git Integration**: Auto-deploy from GitHub/GitLab
 - **Serverless Architecture**: Scales automatically with demand
 - **Global CDN**: Fast response times worldwide
 - **Built-in CI/CD**: Automatic deployments on code changes
+- **⚠️ Limitation**: 30-second function timeout may affect large video processing
+
+### Option 2: Hybrid Deployment (RECOMMENDED) 🌟
+- **Frontend on Vercel**: Lightning-fast static file serving via global CDN
+- **Backend on Render.com**: No timeout limits for video processing
+- **Best Performance**: Combines strengths of both platforms
+- **Cost Effective**: Use free tiers of both services
+- **Easy Setup**: Use our automated deployment script
+
+**For hybrid deployment, see [HYBRID-DEPLOYMENT-GUIDE.md](./HYBRID-DEPLOYMENT-GUIDE.md)**
 
 ## 🚀 Quick Setup for Vercel
 

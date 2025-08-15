@@ -85,8 +85,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // API endpoint (your backend server)
-    // Dynamically determine the API URL based on the current window location
-    const API_URL = `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}/api`;
+    // Use Render backend URL for production, fallback to local for development
+    const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const RENDER_BACKEND_URL = 'https://dashboard.render.com/web/srv-d276lundiees73buadig/deploys/dep-d2fdvr3uibrs739rdvn0'; // REPLACE WITH YOUR ACTUAL RENDER URL
+    const API_URL = isLocalDevelopment 
+        ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}/api`
+        : `${RENDER_BACKEND_URL}/api`;
     
     // Show loading state
     function showLoading() {
