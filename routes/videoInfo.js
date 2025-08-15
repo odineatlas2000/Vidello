@@ -14,7 +14,7 @@ const platformDetector = require('../utils/platformDetector');
  * @desc    Get video information based on URL
  * @access  Public
  */
-router.get('/video-info', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { url } = req.query;
     

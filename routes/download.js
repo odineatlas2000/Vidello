@@ -14,7 +14,7 @@ const platformDetector = require('../utils/platformDetector');
  * @desc    Download video or audio from URL
  * @access  Public
  */
-router.get('/download', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { url, format, quality } = req.query;
     
