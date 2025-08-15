@@ -84,13 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 10);
     }
     
-    // API endpoint (your backend server)
-    // Use Render backend URL for production, fallback to local for development
-    const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // API endpoint - Always use Render backend for all requests
     const RENDER_BACKEND_URL = 'https://vidello.onrender.com'; // REPLACE WITH YOUR ACTUAL RENDER URL
-    const API_URL = isLocalDevelopment 
-        ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}/api`
-        : `${RENDER_BACKEND_URL}/api`;
+    const API_URL = `${RENDER_BACKEND_URL}/api`;
     
     // Show loading state
     function showLoading() {

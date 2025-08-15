@@ -1,7 +1,9 @@
 /**
- * Quick Fix Script: Update Render Backend URL
+ * Update Render Backend URL Script
  * This script helps you update the Render backend URL in your frontend files
  * after you've deployed your backend to Render.com
+ * 
+ * Note: Frontend now always uses Render backend (no environment detection)
  */
 
 const fs = require('fs');

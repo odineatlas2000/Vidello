@@ -47,14 +47,17 @@ FRONTEND_URL=https://your-vercel-app.vercel.app
 ## Step 2: Configure Frontend for Hybrid Deployment
 
 ### 2.1 Update API Configuration
-The frontend has already been configured to detect the environment and use the appropriate backend URL. You need to update the Render URL in `/public/script.js`:
+The frontend has been configured to always use the Render backend URL. You need to update the Render URL in both `/script.js` and `/public/script.js`:
 
 ```javascript
-// Find this line in /public/script.js:
+// Find this line in both /script.js and /public/script.js:
 const RENDER_BACKEND_URL = 'https://your-render-app-name.onrender.com';
 
 // Replace with your actual Render URL:
 const RENDER_BACKEND_URL = 'https://your-app-name-backend.onrender.com';
+
+// The API_URL is now simply:
+const API_URL = `${RENDER_BACKEND_URL}/api`;
 ```
 
 ### 2.2 Update Vercel Configuration
