@@ -8,6 +8,14 @@ services:
     plan: free  # Change to 'starter' or higher for production
     buildCommand: npm install
     startCommand: npm start
+    # Explicitly disable Python builds
+    buildFilter:
+      ignoredPaths:
+        - "**/*.py"
+        - "**/requirements.txt"
+        - "**/pyproject.toml"
+        - "**/poetry.lock"
+        - "python_deps/**"
     envVars:
       - key: NODE_ENV
         value: production
