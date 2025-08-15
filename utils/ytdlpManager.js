@@ -353,7 +353,6 @@ class YtDlpManager {
       throw error;
     }
   }
-  }
 
   /**
    * Professional yt-dlp resolver with dynamic installation fallback
@@ -638,95 +637,14 @@ class YtDlpManager {
       throw error;
     }
   }
-}
-
-module.exports = YtDlpManager;
-
-  /**
-   * Get appropriate format string for each platform
-   */
-  getFormatForPlatform(platform, options = {}) {
-    if (options.format === 'audio') {
-      return 'bestaudio/best';
-    }
-
-    if (options.quality) {
-      return `best[height<=${options.quality}][ext=mp4]/best[ext=mp4]/best`;
-    }
-
-    switch (platform) {
-      case 'twitter':
-        return 'best[ext=mp4]/best';
-      case 'instagram':
-        return 'best[ext=mp4]/best';
-      case 'tiktok':
-        return 'best[ext=mp4]/best';
-      case 'facebook':
-        return 'best[ext=mp4]/best';
-      case 'youtube':
-        return 'best[ext=mp4]/best';
-      default:
-        return 'best[ext=mp4]/best';
-    }
-  }
-
-  /**
-   * Format ytdl-core info to standard format
-   */
-  formatYtdlCoreInfo(info) {
-    return {
-      title: info.videoDetails.title,
-      duration: parseInt(info.videoDetails.lengthSeconds),
-      thumbnail: info.videoDetails.thumbnails?.[0]?.url,
-      uploader: info.videoDetails.author?.name,
-      view_count: parseInt(info.videoDetails.viewCount),
-      formats: info.formats.map(format => ({
-        format_id: format.itag?.toString(),
-        ext: format.container,
-        quality: format.qualityLabel,
-        filesize: format.contentLength ? parseInt(format.contentLength) : null,
-        url: format.url
-      }))
-    };
-  }
-
-  /**
-   * Format yt-dlp info to standard format
-   */
-  formatYtDlpInfo(info) {
-    return {
-      title: info.title,
-      duration: info.duration,
-      thumbnail: info.thumbnail,
-      uploader: info.uploader || info.channel,
-      view_count: info.view_count,
-      formats: info.formats?.map(format => ({
-        format_id: format.format_id,
-        ext: format.ext,
-        quality: format.quality || format.height ? `${format.height}p` : 'unknown',
-        filesize: format.filesize,
-        url: format.url
-      })) || []
-    };
-  }
 
   /**
    * Check if manager is ready to use
    */
   isReady() {
+    console.log(`🔍 YtDlpManager.isReady(): returning ${this.isInitialized}`);
     return this.isInitialized;
-  }
-
-  /**
-   * Get available downloaders
-   */
-  getAvailableDownloaders() {
-    const downloaders = [];
-    if (this.ytdlCore) downloaders.push('ytdl-core');
-    if (this.ytDlpExec) downloaders.push('yt-dlp-exec');
-    return downloaders;
   }
 }
 
-// Export singleton instance
-module.exports = new YtDlpManager();
+module.exports = YtDlpManager;

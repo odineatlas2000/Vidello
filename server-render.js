@@ -13,7 +13,8 @@ const videoInfoRoutes = require('./routes/videoInfo');
 const downloadRoutes = require('./routes/download');
 
 // Import utilities
-const ytdlpManager = require('./utils/ytdlpManager');
+const YtDlpManager = require('./utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 
 const app = express();
 const PORT = process.env.PORT || 10000; // Render.com default port
