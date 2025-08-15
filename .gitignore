@@ -75,3 +75,14 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+
+# Render.com specific
+.env.local
+.env.production
+
+# Build outputs
+dist/
+build/
+
+# Render.com logs
+render-logs/

@@ -10,8 +10,14 @@ console.log('✅ Facebook controller: Using centralized YtDlpManager');
 /**
  * Get Facebook video information
  */
-async function getVideoInfo(url, res) {
+async function getVideoInfo(req, res) {
   try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
     console.log('Getting Facebook video info for URL:', url);
     
     if (!ytdlpManager.isReady()) {

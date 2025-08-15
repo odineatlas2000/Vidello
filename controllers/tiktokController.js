@@ -9,8 +9,14 @@ console.log('✅ TikTok controller: Using centralized YtDlpManager');
 /**
  * Get TikTok video information
  */
-async function getVideoInfo(url, res) {
+async function getVideoInfo(req, res) {
   try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
     console.log('Getting TikTok video info for URL:', url);
     
     if (!ytdlpManager.isReady()) {

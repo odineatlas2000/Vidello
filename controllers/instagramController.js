@@ -9,8 +9,14 @@ console.log('✅ Instagram controller: Using centralized YtDlpManager');
 /**
  * Get Instagram video information using yt-dlp
  */
-async function getVideoInfo(url, res) {
+async function getVideoInfo(req, res) {
   try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
     console.log('Fetching Instagram video info for:', url);
     
     if (!ytdlpManager.isReady()) {

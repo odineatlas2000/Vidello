@@ -5,8 +5,14 @@ console.log('✅ YouTube controller: Using centralized YtDlpManager');
 /**
  * Get YouTube video information
  */
-async function getVideoInfo(url, res) {
+async function getVideoInfo(req, res) {
   try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
     if (!ytdlpManager.isReady()) {
       return res.status(500).json({ 
         error: 'No video downloader available',

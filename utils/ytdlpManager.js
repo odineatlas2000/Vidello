@@ -50,8 +50,43 @@ class YtDlpManager {
             this.useDirectYtDlp = true;
           }
         } catch (replitError) {
-          console.warn('⚠️ YtDlpManager: Failed to set Replit yt-dlp path, using direct approach:', replitError.message);
+          console.warn('⚠️ YtDlpManager: Replit configuration failed:', replitError.message);
           this.useDirectYtDlp = true;
+        }
+      } else if (process.env.RENDER) {
+        try {
+          // For Render.com, use system yt-dlp installed via pip
+          if (typeof ytDlpExec.setYtDlpPath === 'function') {
+            // Try common Render.com paths
+            const renderPaths = [
+              '/opt/render/.local/bin/yt-dlp',
+              '/home/render/.local/bin/yt-dlp', 
+              'yt-dlp'
+            ];
+            
+            let pathSet = false;
+            for (const path of renderPaths) {
+              try {
+                ytDlpExec.setYtDlpPath(path);
+                console.log(`🔧 YtDlpManager: Configured for Render.com environment with yt-dlp at ${path}`);
+                pathSet = true;
+                break;
+              } catch (pathError) {
+                console.log(`⚠️ YtDlpManager: Path ${path} not available, trying next...`);
+              }
+            }
+            
+            if (!pathSet) {
+              console.warn('⚠️ YtDlpManager: No valid yt-dlp path found for Render.com, using direct approach');
+              this.useDirectYtDlp = true;
+            }
+          } else {
+            console.warn('⚠️ YtDlpManager: setYtDlpPath method not available, using direct approach');
+            this.useDirectYtDlp = true;
+          }
+        } catch (renderError) {
+           console.warn('⚠️ YtDlpManager: Render.com configuration failed:', renderError.message);
+           this.useDirectYtDlp = true;
         }
       } else if (process.platform === 'win32') {
         // For Windows, check if local yt-dlp.exe exists
@@ -350,6 +385,26 @@ class YtDlpManager {
         // In Replit, use system yt-dlp
         ytdlpPath = 'yt-dlp';
         console.log('🔧 Using system yt-dlp for Replit environment');
+      } else if (process.env.RENDER) {
+        // In Render.com, try common paths where pip installs yt-dlp
+        const renderPaths = [
+          '/opt/render/.local/bin/yt-dlp',
+          '/home/render/.local/bin/yt-dlp',
+          'yt-dlp'
+        ];
+        
+        ytdlpPath = 'yt-dlp'; // Default fallback
+        for (const renderPath of renderPaths) {
+          if (fs.existsSync(renderPath)) {
+            ytdlpPath = renderPath;
+            console.log(`🔧 Using yt-dlp for Render.com at: ${renderPath}`);
+            break;
+          }
+        }
+        
+        if (ytdlpPath === 'yt-dlp') {
+          console.log('🔧 Using system yt-dlp for Render.com (PATH-based)');
+        }
       } else if (process.platform === 'win32') {
         // On Windows, prefer local yt-dlp.exe if it exists
         const localYtDlpPath = path.join(__dirname, '..', 'yt-dlp.exe');

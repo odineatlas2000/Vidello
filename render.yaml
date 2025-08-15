@@ -1,0 +1,45 @@
+# Render.com deployment configuration
+# This file configures your video downloader for Render.com
+
+services:
+  - type: web
+    name: video-downloader
+    env: node
+    plan: free  # Change to 'starter' or higher for production
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: video-downloader
+          property: port
+    healthCheckPath: /
+    autoDeploy: true
+    branch: main  # Change to your main branch name
+    rootDir: .
+    
+    # Build settings
+    buildFilter:
+      paths:
+        - "**/*.js"
+        - "**/*.json"
+        - "**/*.md"
+        - "!node_modules/**"
+        - "!*.backup"
+        - "!.git/**"
+    
+    # Environment detection
+    preDeployCommand: |
+      echo "Installing yt-dlp for Render.com..."
+      python3 -m pip install --user yt-dlp
+      export PATH="$HOME/.local/bin:$PATH"
+      echo "yt-dlp version: $(yt-dlp --version)"
+    
+    # Disk storage (for temporary files)
+    disk:
+      name: video-temp
+      mountPath: /tmp/videos
+      sizeGB: 1
