@@ -1,2 +1,2 @@
-# Python dependencies will be installed dynamically by the application
-# No packages needed during build phase
+yt-dlp
+pip install -r requirements.txt
