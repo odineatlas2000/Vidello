@@ -1,0 +1,76 @@
+# Render.com ignore file - Explicitly ignore Python files
+# This ensures Render.com treats this as a Node.js-only project
+
+# Python files and directories
+*.py
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PYTHONPATH
+
+# Python dependency files
+requirements.txt
+requirements-dev.txt
+Pipfile
+Pipfile.lock
+pyproject.toml
+poetry.lock
+setup.py
+setup.cfg
+
+# Python virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python-specific directories
+python_deps/
+.venv/
+
+# Replit-specific files (contain Python setup)
+setup-replit*.sh
+replit*.nix
+.replit
+
+# Backup files
+*.backup
+*.bak
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Node.js (keep these - they're needed)
+# node_modules/ - Don't ignore, npm needs this
+# package.json - Don't ignore, required
+# package-lock.json - Don't ignore, required

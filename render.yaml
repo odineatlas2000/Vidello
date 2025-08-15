@@ -8,7 +8,7 @@ services:
     plan: free  # Change to 'starter' or higher for production
     buildCommand: |
       echo "Installing Node.js dependencies..."
-      npm install
+      npm ci --only=production
       echo "Node.js dependencies installed successfully"
     startCommand: npm start
     # Explicitly disable Python builds to avoid conflicts
@@ -48,13 +48,14 @@ services:
         - "!*.backup"
         - "!.git/**"
     
-    # Environment setup for Node.js application
+    # Environment setup for Node.js application only
     preDeployCommand: |
       echo "Setting up Node.js environment for Render.com..."
       echo "Node.js version: $(node --version)"
       echo "NPM version: $(npm --version)"
       echo "Environment: $NODE_ENV"
-      echo "Note: This is a Node.js-only deployment. yt-dlp will be handled by yt-dlp-exec package."
+      echo "Note: This is a Node.js-only deployment. No Python dependencies required."
+      echo "yt-dlp will be handled by yt-dlp-exec package."
       echo "✅ Environment setup completed"
     
     # Disk storage (for temporary files)
