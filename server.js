@@ -138,9 +138,8 @@ async function startServer() {
   try {
     console.log('🔧 Initializing YtDlpManager for Render.com...');
     
-    // Initialize the manager
-    await ytdlpManager.initialize();
-    
+    // YtDlpManager initializes automatically in constructor
+    // Just check if it's ready
     if (ytdlpManager.isReady()) {
       console.log('✅ YtDlpManager initialized successfully');
     } else {

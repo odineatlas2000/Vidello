@@ -162,7 +162,15 @@ curl "https://your-app-name.onrender.com/api/download?url=https://www.youtube.co
 - First request after sleep may take 30+ seconds
 - Consider upgrading for always-on service
 
-#### 7. Dependency Installation Errors
+#### 7. YtDlpManager Initialize Error
+**Symptoms**: `TypeError: ytdlpManager.initialize is not a function`
+**Solutions**:
+- This has been fixed by removing the non-existent initialize() method call
+- YtDlpManager initializes automatically in its constructor
+- Ensure you're using the latest server.js and server-render.js files
+- The manager is ready to use immediately after import
+
+#### 8. Dependency Installation Errors
 **Symptoms**: Various npm or package installation failures
 **Solutions**:
 - Clear npm cache: `npm cache clean --force`
