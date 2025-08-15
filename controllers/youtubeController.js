@@ -21,26 +21,64 @@ async function getVideoInfo(req, res) {
       });
     }
 
-    // Use centralized manager to get video info
-    const info = await ytdlpManager.getVideoInfo(url);
-    
-    return res.json({
-      platform: 'youtube',
-      title: info.title,
-      thumbnail: info.thumbnail,
-      duration: info.duration,
-      formats: info.formats ? info.formats.map(format => ({
-        quality: format.height ? `${format.height}p` : 'Audio only',
-        mimeType: format.ext,
-        formatId: format.format_id,
-        hasAudio: format.acodec !== 'none',
-        hasVideo: format.vcodec !== 'none'
-      })) : []
-    });
+    try {
+      // Use centralized manager to get video info
+      const info = await ytdlpManager.getVideoInfo(url);
+      
+      return res.json({
+        platform: 'youtube',
+        title: info.title,
+        thumbnail: info.thumbnail,
+        duration: info.duration,
+        formats: info.formats ? info.formats.map(format => ({
+          quality: format.height ? `${format.height}p` : 'Audio only',
+          mimeType: format.ext,
+          formatId: format.format_id,
+          hasAudio: format.acodec !== 'none',
+          hasVideo: format.vcodec !== 'none'
+        })) : []
+      });
+    } catch (ytdlpError) {
+      console.error('yt-dlp failed:', ytdlpError.message);
+      
+      // Check if it's an authentication error (bot detection)
+      if (ytdlpError.message.includes('Sign in to confirm you\'re not a bot') || 
+          ytdlpError.message.includes('cookies') ||
+          ytdlpError.message.includes('authentication')) {
+        console.log('🔄 Authentication error detected, trying ytdl-core fallback...');
+        
+        try {
+          // Fallback to ytdl-core for basic info
+          const ytdlCore = require('@distube/ytdl-core');
+          const info = await ytdlCore.getInfo(url);
+          
+          return res.json({
+            platform: 'youtube',
+            title: info.videoDetails.title,
+            thumbnail: info.videoDetails.thumbnails[0]?.url,
+            duration: info.videoDetails.lengthSeconds,
+            formats: info.formats
+              .filter(format => format.hasVideo || format.hasAudio)
+              .map(format => ({
+                quality: format.qualityLabel || (format.hasAudio && !format.hasVideo ? 'Audio Only' : 'Unknown'),
+                mimeType: format.mimeType,
+                formatId: format.itag,
+                hasAudio: format.hasAudio,
+                hasVideo: format.hasVideo
+              }))
+          });
+        } catch (fallbackError) {
+          console.error('ytdl-core fallback also failed:', fallbackError.message);
+          throw ytdlpError; // Throw original error
+        }
+      } else {
+        throw ytdlpError; // Re-throw non-authentication errors
+      }
+    }
   } catch (error) {
     console.error('YouTube extraction error:', error);
     return res.status(500).json({ 
-      error: 'Failed to extract YouTube video information',
+      error: 'Failed to extract YouTube video information. This may be due to YouTube\'s bot detection. Please try again later.',
       details: error.message
     });
   }
@@ -61,11 +99,37 @@ async function downloadVideo(url, format, quality, res) {
       });
     }
 
-    // Get video info first to get title
-    const info = await ytdlpManager.getVideoInfo(url);
-    const videoTitle = info.title.replace(/[\/\:*?"<>|]/g, '_');
+    let info;
+    let videoTitle;
     
-    console.log('Video info retrieved successfully');
+    try {
+      // Get video info first to get title
+      info = await ytdlpManager.getVideoInfo(url);
+      videoTitle = info.title.replace(/[\/\:*?"<>|]/g, '_');
+      console.log('Video info retrieved successfully via yt-dlp');
+    } catch (ytdlpError) {
+      console.error('yt-dlp failed for video info:', ytdlpError.message);
+      
+      // Check if it's an authentication error (bot detection)
+      if (ytdlpError.message.includes('Sign in to confirm you\'re not a bot') || 
+          ytdlpError.message.includes('cookies') ||
+          ytdlpError.message.includes('authentication')) {
+        console.log('🔄 Authentication error detected, using ytdl-core for download...');
+        
+        try {
+          // Fallback to ytdl-core for info
+          const ytdlCore = require('@distube/ytdl-core');
+          const fallbackInfo = await ytdlCore.getInfo(url);
+          videoTitle = fallbackInfo.videoDetails.title.replace(/[\/\:*?"<>|]/g, '_');
+          console.log('Video info retrieved successfully via ytdl-core fallback');
+        } catch (fallbackError) {
+          console.error('ytdl-core fallback also failed:', fallbackError.message);
+          throw new Error('Both yt-dlp and ytdl-core failed to get video information. YouTube may be blocking requests.');
+        }
+      } else {
+        throw ytdlpError; // Re-throw non-authentication errors
+      }
+    }
     
     // Set appropriate headers based on format
     if (format === 'audio') {

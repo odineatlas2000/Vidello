@@ -141,14 +141,7 @@ class YtDlpManager {
     console.log(`🎯 Getting video info for ${platform} URL: ${url}`);
 
     try {
-      // For YouTube, prefer ytdl-core if available
-      if (platform === 'youtube' && this.ytdlCore) {
-        console.log('📺 Using ytdl-core for YouTube info');
-        const info = await this.ytdlCore.getInfo(url);
-        return this.formatYtdlCoreInfo(info);
-      }
-
-      // For other platforms or if ytdl-core fails, use yt-dlp-exec or direct yt-dlp
+      // Try yt-dlp first for all platforms
       if (this.ytDlpExec && !this.useDirectYtDlp) {
         try {
           console.log('🎬 Using yt-dlp-exec for video info');
@@ -162,24 +155,69 @@ class YtDlpManager {
           });
           return this.formatYtDlpInfo(info);
         } catch (ytDlpExecError) {
-          console.warn('⚠️ yt-dlp-exec failed, falling back to direct yt-dlp:', ytDlpExecError.message);
+          console.warn('⚠️ yt-dlp-exec failed:', ytDlpExecError.message);
+          
+          // Check if it's an authentication error for YouTube
+          if (platform === 'youtube' && 
+              (ytDlpExecError.message.includes('Sign in to confirm you\'re not a bot') || 
+               ytDlpExecError.message.includes('cookies') ||
+               ytDlpExecError.message.includes('authentication'))) {
+            console.log('🔄 YouTube authentication error detected, trying ytdl-core fallback...');
+            
+            if (this.ytdlCore) {
+              try {
+                console.log('📺 Using ytdl-core fallback for YouTube info');
+                const info = await this.ytdlCore.getInfo(url);
+                return this.formatYtdlCoreInfo(info);
+              } catch (fallbackError) {
+                console.error('❌ ytdl-core fallback also failed:', fallbackError.message);
+                throw ytDlpExecError; // Throw original yt-dlp error
+              }
+            }
+          }
+          
           // Set flag to use direct approach for future calls
           this.useDirectYtDlp = true;
         }
       }
 
-      // Fallback to direct yt-dlp for Replit
+      // Fallback to direct yt-dlp
       if (this.useDirectYtDlp) {
-        console.log('🎬 Using direct yt-dlp for video info');
-        const info = await this.executeDirectYtDlp(url, {
-          dumpSingleJson: true,
-          noCheckCertificates: true,
-          noWarnings: true,
-          addHeader: this.getHeadersForPlatform(platform),
-          retries: 3,
-          sleepInterval: 1
-        });
-        return this.formatYtDlpInfo(info);
+        try {
+          console.log('🎬 Using direct yt-dlp for video info');
+          const info = await this.executeDirectYtDlp(url, {
+            dumpSingleJson: true,
+            noCheckCertificates: true,
+            noWarnings: true,
+            addHeader: this.getHeadersForPlatform(platform),
+            retries: 3,
+            sleepInterval: 1
+          });
+          return this.formatYtDlpInfo(info);
+        } catch (directYtDlpError) {
+          console.error('❌ Direct yt-dlp failed:', directYtDlpError.message);
+          
+          // Check if it's an authentication error for YouTube
+          if (platform === 'youtube' && 
+              (directYtDlpError.message.includes('Sign in to confirm you\'re not a bot') || 
+               directYtDlpError.message.includes('cookies') ||
+               directYtDlpError.message.includes('authentication'))) {
+            console.log('🔄 YouTube authentication error detected, trying ytdl-core fallback...');
+            
+            if (this.ytdlCore) {
+              try {
+                console.log('📺 Using ytdl-core fallback for YouTube info');
+                const info = await this.ytdlCore.getInfo(url);
+                return this.formatYtdlCoreInfo(info);
+              } catch (fallbackError) {
+                console.error('❌ ytdl-core fallback also failed:', fallbackError.message);
+                throw directYtDlpError; // Throw original yt-dlp error
+              }
+            }
+          }
+          
+          throw directYtDlpError;
+        }
       }
 
       throw new Error('No suitable downloader available');
@@ -718,6 +756,52 @@ class YtDlpManager {
       console.error('❌ Error downloading video:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Format ytdl-core info to standard format
+   */
+  formatYtdlCoreInfo(info) {
+    return {
+      title: info.videoDetails.title,
+      duration: parseInt(info.videoDetails.lengthSeconds),
+      thumbnail: info.videoDetails.thumbnails?.[0]?.url,
+      uploader: info.videoDetails.author?.name,
+      view_count: parseInt(info.videoDetails.viewCount),
+      formats: info.formats.map(format => ({
+        format_id: format.itag?.toString(),
+        ext: format.container,
+        quality: format.qualityLabel,
+        filesize: format.contentLength ? parseInt(format.contentLength) : null,
+        url: format.url,
+        acodec: format.hasAudio ? 'mp4a' : 'none',
+        vcodec: format.hasVideo ? 'avc1' : 'none',
+        height: format.height
+      }))
+    };
+  }
+
+  /**
+   * Format yt-dlp info to standard format
+   */
+  formatYtDlpInfo(info) {
+    return {
+      title: info.title,
+      duration: info.duration,
+      thumbnail: info.thumbnail,
+      uploader: info.uploader || info.channel,
+      view_count: info.view_count,
+      formats: info.formats?.map(format => ({
+        format_id: format.format_id,
+        ext: format.ext,
+        quality: format.quality || format.height ? `${format.height}p` : 'unknown',
+        filesize: format.filesize,
+        url: format.url,
+        acodec: format.acodec,
+        vcodec: format.vcodec,
+        height: format.height
+      })) || []
+    };
   }
 
   /**
