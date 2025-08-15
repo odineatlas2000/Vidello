@@ -19,12 +19,15 @@ This guide provides comprehensive instructions for deploying your video download
 2. **Render.com Account**: Sign up at [render.com](https://render.com)
 3. **Git Repository**: Push your code to GitHub
 
+### Important Version Fix
+⚠️ **Note**: If you encounter the error `npm error notarget No matching version found for yt-dlp-exec@^0.3.3`, this has been fixed by updating to `yt-dlp-exec@^1.0.2` in all package.json files.
+
 ### Step 1: Prepare Your Repository
 
 1. **Push to GitHub**:
    ```bash
    git add .
-   git commit -m "Prepare for Render.com deployment"
+   git commit -m "Prepare for Render.com deployment with fixed dependencies"
    git push origin main
    ```
 
@@ -117,33 +120,54 @@ curl "https://your-app-name.onrender.com/api/download?url=https://www.youtube.co
 
 ### Common Issues
 
-#### 1. Build Failures
+#### 1. Build Fails with "No matching version found for yt-dlp-exec@^0.3.3"
+**Symptoms**: npm error during dependency installation
+**Solutions**:
+- This has been fixed by updating to `yt-dlp-exec@^1.0.2`
+- Ensure you're using the latest package.json files
+- Run `npm install` locally to verify dependencies
+
+#### 2. Build Failures
 **Symptoms**: Build fails during deployment
 **Solutions**:
 - Check build logs in Render dashboard
 - Verify `package.json` dependencies
 - Ensure all required files are committed to Git
 
-#### 2. yt-dlp Not Found
+#### 3. yt-dlp Not Found
 **Symptoms**: "yt-dlp command not found" errors
 **Solutions**:
 - Check the `preDeployCommand` in `render.yaml`
 - Verify Python3 and pip are available
 - Check build logs for yt-dlp installation
 
-#### 3. Port Issues
+#### 4. Port Issues
 **Symptoms**: Application fails to start
 **Solutions**:
 - Ensure your server listens on `process.env.PORT`
 - Default port should be 10000 for Render
 - Check server.js configuration
 
-#### 4. Memory/CPU Limits
+#### 5. Memory/CPU Limits
 **Symptoms**: Application crashes or becomes slow
 **Solutions**:
 - Upgrade to Starter plan for more resources
 - Optimize video processing (smaller chunks)
 - Implement request queuing
+
+#### 6. Timeout Issues
+**Symptoms**: Service becomes unresponsive or slow
+**Solutions**:
+- Free tier services sleep after 15 minutes of inactivity
+- First request after sleep may take 30+ seconds
+- Consider upgrading for always-on service
+
+#### 7. Dependency Installation Errors
+**Symptoms**: Various npm or package installation failures
+**Solutions**:
+- Clear npm cache: `npm cache clean --force`
+- Delete node_modules and package-lock.json, then reinstall
+- Check for conflicting package versions
 
 ### Debug Commands
 
