@@ -3,7 +3,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 // Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 console.log('✅ Instagram controller: Using centralized YtDlpManager');
 
 /**

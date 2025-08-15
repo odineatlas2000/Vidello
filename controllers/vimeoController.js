@@ -1,5 +1,6 @@
 // Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 console.log('✅ Vimeo controller: Using centralized YtDlpManager');
 
 /**

@@ -3,7 +3,8 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 // Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 console.log('✅ TikTok controller: Using centralized YtDlpManager');
 
 /**

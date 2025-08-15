@@ -4,7 +4,8 @@ const { spawn } = require('child_process');
 const { Readable } = require('stream');
 
 // Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 console.log('✅ Facebook controller: Using centralized YtDlpManager');
 
 /**

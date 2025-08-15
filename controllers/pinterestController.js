@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 
 // Use centralized YtDlpManager
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 console.log('✅ Pinterest controller: Using centralized YtDlpManager');
 
 /**

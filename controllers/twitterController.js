@@ -3,7 +3,8 @@
  * Handles Twitter/X video downloads and information retrieval
  */
 
-const ytdlpManager = require('../utils/ytdlpManager');
+const YtDlpManager = require('../utils/ytdlpManager');
+const ytdlpManager = new YtDlpManager();
 const { formatResponse } = require('../utils/responseFormatter');
 
 /**
