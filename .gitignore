@@ -49,6 +49,11 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+
+# Cookies directory (contains sensitive authentication data)
+cookies/
+*.cookies
+*.txt
 .env.test
 
 # parcel-bundler cache (https://parceljs.org/)

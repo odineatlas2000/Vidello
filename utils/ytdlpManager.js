@@ -6,6 +6,8 @@
 
 const { detectPlatform } = require('./platformDetector');
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 class YtDlpManager {
   constructor() {
@@ -130,6 +132,31 @@ class YtDlpManager {
   }
 
   /**
+   * Find and validate cookie file for a specific platform
+   */
+  getCookieFile(platform) {
+    try {
+      const cookiesDir = path.join(__dirname, '..', 'cookies');
+      const cookieFile = path.join(cookiesDir, `${platform}.txt`);
+      
+      if (fs.existsSync(cookieFile)) {
+        const stats = fs.statSync(cookieFile);
+        if (stats.size > 0) {
+          console.log(`🍪 Found cookie file for ${platform}: ${cookieFile}`);
+          return cookieFile;
+        } else {
+          console.warn(`⚠️ Cookie file for ${platform} is empty: ${cookieFile}`);
+        }
+      } else {
+        console.log(`ℹ️ No cookie file found for ${platform}: ${cookieFile}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error checking cookie file for ${platform}:`, error.message);
+    }
+    return null;
+  }
+
+  /**
    * Get video information using appropriate downloader
    */
   async getVideoInfo(url) {
@@ -185,14 +212,26 @@ class YtDlpManager {
       if (this.useDirectYtDlp) {
         try {
           console.log('🎬 Using direct yt-dlp for video info');
-          const info = await this.executeDirectYtDlp(url, {
+          
+          // Get cookie file for the platform
+          const cookieFile = this.getCookieFile(platform);
+          
+          const options = {
             dumpSingleJson: true,
             noCheckCertificates: true,
             noWarnings: true,
             addHeader: this.getHeadersForPlatform(platform),
             retries: 3,
             sleepInterval: 1
-          });
+          };
+          
+          // Add cookie file if available
+          if (cookieFile) {
+            options.cookiesFile = cookieFile;
+            console.log(`🍪 Using cookies for ${platform} authentication`);
+          }
+          
+          const info = await this.executeDirectYtDlp(url, options);
           return this.formatYtDlpInfo(info);
         } catch (directYtDlpError) {
           console.error('❌ Direct yt-dlp failed:', directYtDlpError.message);
@@ -636,6 +675,12 @@ class YtDlpManager {
           });
         }
         
+        // Add cookies support
+        if (options.cookiesFile) {
+          args.push('--cookies');
+          args.push(options.cookiesFile);
+        }
+        
         console.log('🚀 Executing yt-dlp:', ytdlpPath);
         console.log('🔧 Arguments:', args);
         
@@ -712,6 +757,13 @@ class YtDlpManager {
       
       const mergedOptions = { ...defaultOptions, ...options };
       const platform = detectPlatform(url);
+      
+      // Get cookie file for the platform
+      const cookieFile = this.getCookieFile(platform);
+      if (cookieFile) {
+        mergedOptions.cookiesFile = cookieFile;
+        console.log(`🍪 Using cookies for ${platform} authentication`);
+      }
       
       // Try direct yt-dlp execution first
       try {
