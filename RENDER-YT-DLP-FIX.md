@@ -19,46 +19,65 @@
 2. **صلاحيات التنفيذ**: قد لا تكون هناك صلاحيات كافية لتنفيذ yt-dlp.
 3. **اختلاف البيئة**: البيئة التي يتم فيها تثبيت yt-dlp (أثناء البناء) قد تختلف عن البيئة التي يتم فيها تشغيل التطبيق.
 
-## الحل
+## الحلول المطبقة
 
-تم تنفيذ الإصلاحات التالية لحل المشكلة:
+### 1. تحديث render.yaml
 
-### 1. تحديث ملف render.yaml
-
-- إضافة متغير PATH إلى متغيرات البيئة لضمان توفر yt-dlp في مسار النظام:
-
+#### إضافة متغيرات البيئة الدائمة:
 ```yaml
 envVars:
   - key: NODE_ENV
     value: production
   - key: PORT
-    fromService:
-      type: web
-      name: video-downloader
-      property: port
+    value: 10000
   - key: PATH
-    value: "$HOME/.local/bin:$PATH"
+    value: $HOME/.local/bin:$PATH
   - key: RENDER
     value: "true"
 ```
 
-- تحسين أمر preDeployCommand لتثبيت yt-dlp والتحقق من التثبيت:
-
-```yaml
+#### تحسين preDeployCommand:
+```bash
 preDeployCommand: |
-  echo "Installing yt-dlp for Render.com..."
-  python3 -m pip install --user --upgrade yt-dlp
-  export PATH="$HOME/.local/bin:$PATH"
-  echo "PATH after update: $PATH"
-  echo "Checking yt-dlp installation..."
-  which yt-dlp || echo "yt-dlp not found in PATH"
-  ls -la $HOME/.local/bin/ | grep yt-dlp || echo "yt-dlp not found in .local/bin"
-  if command -v yt-dlp >/dev/null 2>&1; then
-    echo "✅ yt-dlp version: $(yt-dlp --version)"
-  else
-    echo "❌ yt-dlp installation failed"
-    exit 1
-  fi
+  python3 -m pip install --user --upgrade yt-dlp && \
+  echo "✅ yt-dlp installation completed" && \
+  which yt-dlp || echo "⚠️ yt-dlp not found in PATH" && \
+  ls -la $HOME/.local/bin/ | grep yt-dlp || echo "⚠️ yt-dlp not found in local bin" && \
+  echo "PATH: $PATH" && \
+  exit 0
+```
+
+### 2. الحل البرمجي المحترف الجديد
+
+#### آلية resolveYtDlpPath المتقدمة:
+- **فحص شامل للمسارات**: يتحقق من جميع المسارات المحتملة لـ yt-dlp في بيئات مختلفة
+- **اختبار فعلي للأوامر**: يقوم بتشغيل `--version` للتأكد من عمل yt-dlp
+- **تثبيت ديناميكي**: إذا لم يتم العثور على yt-dlp، يقوم بتثبيته تلقائياً
+- **معالجة أخطاء متقدمة**: رسائل خطأ واضحة ومفصلة
+
+#### ميزات الحل الجديد:
+```javascript
+// فحص المسارات المحتملة
+if (process.env.RENDER) {
+  candidatePaths = [
+    process.env.HOME + '/.local/bin/yt-dlp',
+    '/opt/render/.local/bin/yt-dlp',
+    '/home/render/.local/bin/yt-dlp',
+    '/usr/local/bin/yt-dlp',
+    'yt-dlp'
+  ];
+}
+
+// اختبار فعلي للأوامر
+const testProcess = spawn(candidatePath, ['--version'], {
+  stdio: ['ignore', 'pipe', 'pipe'],
+  shell: process.platform === 'win32'
+});
+
+// تثبيت ديناميكي
+if (process.env.RENDER) {
+  await this.installYtDlpDynamically();
+}
 ```
 
 ### 2. تحسين كود ytdlpManager.js
@@ -95,6 +114,59 @@ else if (process.env.RENDER) {
   }
 }
 ```
+
+### 3. التثبيت الديناميكي لـ yt-dlp
+
+#### آلية installYtDlpDynamically:
+```javascript
+async installYtDlpDynamically() {
+  const { spawn } = require('child_process');
+  
+  return new Promise((resolve, reject) => {
+    console.log('📦 Installing yt-dlp dynamically...');
+    
+    const installProcess = spawn('python3', ['-m', 'pip', 'install', '--user', '--upgrade', 'yt-dlp'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false
+    });
+    
+    // معالجة مخرجات التثبيت
+    let stdout = '';
+    let stderr = '';
+    
+    installProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    installProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    installProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ yt-dlp installed successfully');
+        resolve();
+      } else {
+        console.error('❌ yt-dlp installation failed:', stderr);
+        reject(new Error(`Installation failed with code ${code}: ${stderr}`));
+      }
+    });
+    
+    // مهلة زمنية للتثبيت (دقيقة واحدة)
+    setTimeout(() => {
+      installProcess.kill();
+      reject(new Error('Installation timeout'));
+    }, 60000);
+  });
+}
+```
+
+#### الفوائد الإضافية:
+- **استقلالية كاملة**: لا يعتمد على تثبيت مسبق لـ yt-dlp
+- **تحديث تلقائي**: يستخدم `--upgrade` لضمان أحدث إصدار
+- **مهلة زمنية**: يمنع التعليق في حالة فشل التثبيت
+- **تسجيل مفصل**: يوفر معلومات واضحة عن عملية التثبيت
+- **معالجة أخطاء شاملة**: يتعامل مع جميع حالات الفشل المحتملة
 
 ## كيفية التحقق من الحل
 

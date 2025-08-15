@@ -287,198 +287,360 @@ class YtDlpManager {
    * Execute yt-dlp directly for streaming downloads
    */
   async executeDirectYtDlpStream(url, options = {}) {
-    return new Promise((resolve, reject) => {
-      // Determine yt-dlp binary path
-      let ytdlpPath = 'yt-dlp';
+    try {
+      // Resolve yt-dlp path dynamically using the same professional resolver
+      const ytdlpPath = await this.resolveYtDlpPath();
       
-      if (process.platform === 'win32') {
-        const path = require('path');
-        const fs = require('fs');
-        const localYtDlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
-        if (fs.existsSync(localYtDlpPath)) {
-          ytdlpPath = localYtDlpPath;
-        } else {
-          ytdlpPath = 'yt-dlp.exe';
+      return new Promise((resolve, reject) => {
+        // Build command arguments
+        const args = [url];
+        
+        // Add options
+        if (options.output) args.push('-o', options.output);
+        if (options.format) args.push('-f', options.format);
+        if (options.noCheckCertificates) args.push('--no-check-certificates');
+        if (options.noWarnings) args.push('--no-warnings');
+        if (options.preferFreeFormats) args.push('--prefer-free-formats');
+        if (options.retries) args.push('--retries', options.retries.toString());
+        if (options.sleepInterval) args.push('--sleep-interval', options.sleepInterval.toString());
+        
+        // Add headers (properly quoted for command line)
+        if (options.addHeader && Array.isArray(options.addHeader)) {
+          options.addHeader.forEach(header => {
+            args.push('--add-header');
+            args.push(header);
+          });
         }
-      }
-      
-      // Build command arguments
-      const args = [url];
-      
-      // Add options
-      if (options.output) args.push('-o', options.output);
-      if (options.format) args.push('-f', options.format);
-      if (options.noCheckCertificates) args.push('--no-check-certificates');
-      if (options.noWarnings) args.push('--no-warnings');
-      if (options.preferFreeFormats) args.push('--prefer-free-formats');
-      if (options.retries) args.push('--retries', options.retries.toString());
-      if (options.sleepInterval) args.push('--sleep-interval', options.sleepInterval.toString());
-      
-      // Add headers (properly quoted for command line)
-      if (options.addHeader && Array.isArray(options.addHeader)) {
-        options.addHeader.forEach(header => {
-          args.push('--add-header');
-          args.push(header);
-        });
-      }
-      
-      console.log(`🎬 Executing yt-dlp stream: ${ytdlpPath} ${args.join(' ')}`);
-      
-      try {
-        const ytdlpProcess = spawn(ytdlpPath, args, {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          shell: process.platform === 'win32' // Use shell on Windows for better compatibility
-        });
         
-        ytdlpProcess.on('error', (error) => {
-          console.error('❌ yt-dlp stream process error:', error.message);
-          if (error.code === 'ENOENT') {
-            reject(new Error(`yt-dlp binary not found at path: ${ytdlpPath}. Please ensure yt-dlp is installed and accessible.`));
-          } else {
-            reject(error);
-          }
-        });
+        console.log(`🎬 Executing yt-dlp stream: ${ytdlpPath} ${args.join(' ')}`);
         
-        ytdlpProcess.stderr.on('data', (data) => {
-          const errorOutput = data.toString();
-          console.error('❌ yt-dlp stream stderr:', errorOutput);
-        });
-        
-        ytdlpProcess.on('close', (code) => {
-          if (code !== 0) {
-            console.error(`❌ yt-dlp stream process exited with code ${code}`);
-          }
-        });
-        
-        // Return the stdout stream for piping
-        resolve(ytdlpProcess.stdout);
-        
-      } catch (error) {
-        console.error('❌ Failed to spawn yt-dlp stream process:', error.message);
-        reject(error);
-      }
-    });
+        try {
+          const ytdlpProcess = spawn(ytdlpPath, args, {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            shell: process.platform === 'win32' // Use shell on Windows for better compatibility
+          });
+          
+          ytdlpProcess.on('error', (error) => {
+            console.error('❌ yt-dlp stream process error:', error.message);
+            if (error.code === 'ENOENT') {
+              reject(new Error(`yt-dlp binary not found at path: ${ytdlpPath}. Please ensure yt-dlp is installed and accessible.`));
+            } else {
+              reject(error);
+            }
+          });
+          
+          ytdlpProcess.stderr.on('data', (data) => {
+            const errorOutput = data.toString();
+            console.error('❌ yt-dlp stream stderr:', errorOutput);
+          });
+          
+          ytdlpProcess.on('close', (code) => {
+            if (code !== 0) {
+              console.error(`❌ yt-dlp stream process exited with code ${code}`);
+            }
+          });
+          
+          // Return the stdout stream for piping
+          resolve(ytdlpProcess.stdout);
+          
+        } catch (error) {
+          console.error('❌ Failed to spawn yt-dlp stream process:', error.message);
+          reject(error);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to resolve yt-dlp path:', error.message);
+      throw error;
+    }
+  }
   }
 
   /**
-   * Execute yt-dlp directly using child_process (Cross-platform fallback)
+   * Professional yt-dlp resolver with dynamic installation fallback
    */
-  async executeDirectYtDlp(url, options = {}) {
-    return new Promise((resolve, reject) => {
-      const args = [url];
-      
-      // Add options as command line arguments
-      if (options.dumpSingleJson) args.push('--dump-single-json');
-      if (options.noCheckCertificates) args.push('--no-check-certificates');
-      if (options.noWarnings) args.push('--no-warnings');
-      if (options.retries) args.push('--retries', options.retries.toString());
-      if (options.sleepInterval) args.push('--sleep-interval', options.sleepInterval.toString());
-      
-      // Add headers (properly quoted for command line)
-      if (options.addHeader && Array.isArray(options.addHeader)) {
-        options.addHeader.forEach(header => {
-          args.push('--add-header');
-          args.push(header);
-        });
-      }
-      
-      // Determine the correct yt-dlp binary path based on environment
-      let ytdlpPath;
-      const path = require('path');
-      const fs = require('fs');
-      
-      if (process.env.REPLIT) {
-        // In Replit, use system yt-dlp
-        ytdlpPath = 'yt-dlp';
-        console.log('🔧 Using system yt-dlp for Replit environment');
-      } else if (process.env.RENDER) {
-        // In Render.com, try common paths where pip installs yt-dlp
-        const renderPaths = [
-          process.env.HOME + '/.local/bin/yt-dlp',
-          '/opt/render/.local/bin/yt-dlp',
-          '/home/render/.local/bin/yt-dlp',
-          'yt-dlp'
-        ];
-        
-        console.log('🔍 Render.com environment detected, checking yt-dlp paths...');
-        console.log('📍 HOME directory:', process.env.HOME);
-        console.log('📍 PATH environment:', process.env.PATH);
-        
-        ytdlpPath = 'yt-dlp'; // Default fallback
-        for (const renderPath of renderPaths) {
-          console.log(`🔍 Checking path: ${renderPath}`);
-          if (renderPath !== 'yt-dlp' && fs.existsSync(renderPath)) {
-            ytdlpPath = renderPath;
-            console.log(`✅ Found yt-dlp for Render.com at: ${renderPath}`);
-            break;
-          }
-        }
-        
-        if (ytdlpPath === 'yt-dlp') {
-          console.log('🔧 Using system yt-dlp for Render.com (PATH-based)');
-          console.log('⚠️ If this fails, check that yt-dlp is properly installed and in PATH');
-        }
-      } else if (process.platform === 'win32') {
-        // On Windows, prefer local yt-dlp.exe if it exists
-        const localYtDlpPath = path.join(__dirname, '..', 'yt-dlp.exe');
-        if (fs.existsSync(localYtDlpPath)) {
-          ytdlpPath = localYtDlpPath;
-          console.log('🔧 Using local yt-dlp.exe for Windows');
-        } else {
-          // Fallback to system yt-dlp on Windows
-          ytdlpPath = 'yt-dlp';
-          console.log('🔧 Using system yt-dlp for Windows (local exe not found)');
+  async resolveYtDlpPath() {
+    const path = require('path');
+    const fs = require('fs');
+    const { spawn } = require('child_process');
+    
+    // Define potential paths based on environment
+    let candidatePaths = [];
+    
+    if (process.env.RENDER) {
+      candidatePaths = [
+        process.env.HOME + '/.local/bin/yt-dlp',
+        '/opt/render/.local/bin/yt-dlp',
+        '/home/render/.local/bin/yt-dlp',
+        '/usr/local/bin/yt-dlp',
+        'yt-dlp'
+      ];
+    } else if (process.env.REPLIT) {
+      candidatePaths = [
+        '/home/runner/.local/bin/yt-dlp',
+        '/usr/local/bin/yt-dlp',
+        'yt-dlp'
+      ];
+    } else if (process.platform === 'win32') {
+      candidatePaths = [
+        path.join(__dirname, '..', 'yt-dlp.exe'),
+        'yt-dlp.exe',
+        'yt-dlp'
+      ];
+    } else {
+      candidatePaths = [
+        '/usr/local/bin/yt-dlp',
+        '/usr/bin/yt-dlp',
+        'yt-dlp'
+      ];
+    }
+    
+    // Test each path
+    for (const candidatePath of candidatePaths) {
+      if (candidatePath !== 'yt-dlp' && candidatePath !== 'yt-dlp.exe') {
+        if (fs.existsSync(candidatePath)) {
+          console.log(`✅ Found yt-dlp at: ${candidatePath}`);
+          return candidatePath;
         }
       } else {
-        // On other platforms, use system yt-dlp
-        ytdlpPath = 'yt-dlp';
-        console.log('🔧 Using system yt-dlp for Unix-like system');
+        // Test if command is available in PATH
+        try {
+          await new Promise((resolve, reject) => {
+            const testProcess = spawn(candidatePath, ['--version'], {
+              stdio: ['ignore', 'pipe', 'pipe'],
+              shell: process.platform === 'win32'
+            });
+            
+            testProcess.on('close', (code) => {
+              if (code === 0) {
+                console.log(`✅ Found yt-dlp in PATH: ${candidatePath}`);
+                resolve(candidatePath);
+              } else {
+                reject(new Error(`Command failed with code ${code}`));
+              }
+            });
+            
+            testProcess.on('error', reject);
+            
+            setTimeout(() => reject(new Error('Timeout')), 5000);
+          });
+          
+          return candidatePath;
+        } catch (error) {
+          console.log(`❌ ${candidatePath} not available in PATH: ${error.message}`);
+        }
       }
+    }
+    
+    // If we reach here, yt-dlp is not found - attempt dynamic installation
+    if (process.env.RENDER) {
+      console.log('🔄 Attempting dynamic yt-dlp installation for Render.com...');
+      try {
+        await this.installYtDlpDynamically();
+        return process.env.HOME + '/.local/bin/yt-dlp';
+      } catch (installError) {
+        console.error('❌ Dynamic installation failed:', installError.message);
+      }
+    }
+    
+    throw new Error('yt-dlp executable not found and dynamic installation failed');
+  }
+  
+  /**
+   * Dynamic yt-dlp installation for Render.com
+   */
+  async installYtDlpDynamically() {
+    const { spawn } = require('child_process');
+    
+    return new Promise((resolve, reject) => {
+      console.log('📦 Installing yt-dlp dynamically...');
       
-      console.log('🚀 Executing direct yt-dlp:', ytdlpPath, args.slice(0, 3).join(' '), '...');
-      
-      const ytdlp = spawn(ytdlpPath, args, {
+      const installProcess = spawn('python3', ['-m', 'pip', 'install', '--user', '--upgrade', 'yt-dlp'], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: process.platform === 'win32' // Use shell on Windows for better compatibility
+        shell: false
       });
       
       let stdout = '';
       let stderr = '';
       
-      ytdlp.stdout.on('data', (data) => {
+      installProcess.stdout.on('data', (data) => {
         stdout += data.toString();
       });
       
-      ytdlp.stderr.on('data', (data) => {
+      installProcess.stderr.on('data', (data) => {
         stderr += data.toString();
       });
       
-      ytdlp.on('close', (code) => {
+      installProcess.on('close', (code) => {
         if (code === 0) {
-          try {
-            const info = JSON.parse(stdout);
-            console.log('✅ Direct yt-dlp execution successful');
-            resolve(info);
-          } catch (parseError) {
-            console.error('❌ Failed to parse yt-dlp JSON output:', parseError.message);
-            reject(new Error(`Failed to parse yt-dlp output: ${parseError.message}`));
-          }
+          console.log('✅ yt-dlp installed successfully');
+          resolve();
         } else {
-          console.error('❌ yt-dlp execution failed:', stderr);
-          reject(new Error(`yt-dlp failed with code ${code}: ${stderr}`));
+          console.error('❌ yt-dlp installation failed:', stderr);
+          reject(new Error(`Installation failed with code ${code}: ${stderr}`));
         }
       });
       
-      ytdlp.on('error', (error) => {
-        console.error('❌ Failed to spawn yt-dlp process:', error.message);
-        if (error.code === 'ENOENT') {
-          reject(new Error(`yt-dlp executable not found at path: ${ytdlpPath}. Please ensure yt-dlp is installed and accessible.`));
-        } else {
-          reject(new Error(`Failed to spawn yt-dlp: ${error.message}`));
-        }
+      installProcess.on('error', (error) => {
+        console.error('❌ Installation process error:', error.message);
+        reject(error);
       });
+      
+      setTimeout(() => {
+        installProcess.kill();
+        reject(new Error('Installation timeout'));
+      }, 60000); // 1 minute timeout
     });
   }
+  
+  /**
+   * Execute yt-dlp directly using child_process (Cross-platform fallback)
+   */
+  async executeDirectYtDlp(url, options = {}) {
+    try {
+      // Resolve yt-dlp path dynamically
+      const ytdlpPath = await this.resolveYtDlpPath();
+      
+      return new Promise((resolve, reject) => {
+        const args = [url];
+        
+        // Add options as command line arguments
+        if (options.dumpSingleJson) args.push('--dump-single-json');
+        if (options.noCheckCertificates) args.push('--no-check-certificates');
+        if (options.noWarnings) args.push('--no-warnings');
+        if (options.retries) args.push('--retries', options.retries.toString());
+        if (options.sleepInterval) args.push('--sleep-interval', options.sleepInterval.toString());
+        
+        // Add headers (properly quoted for command line)
+        if (options.addHeader && Array.isArray(options.addHeader)) {
+          options.addHeader.forEach(header => {
+            args.push('--add-header');
+            args.push(header);
+          });
+        }
+        
+        console.log('🚀 Executing yt-dlp:', ytdlpPath, args.slice(0, 3).join(' '), '...');
+        
+        const ytdlp = spawn(ytdlpPath, args, {
+           stdio: ['ignore', 'pipe', 'pipe'],
+           shell: process.platform === 'win32'
+         });
+         
+         let stdout = '';
+         let stderr = '';
+         
+         ytdlp.stdout.on('data', (data) => {
+           stdout += data.toString();
+         });
+         
+         ytdlp.stderr.on('data', (data) => {
+           stderr += data.toString();
+         });
+         
+         ytdlp.on('close', (code) => {
+           if (code === 0) {
+             try {
+               const result = JSON.parse(stdout);
+               console.log('✅ yt-dlp execution successful');
+               resolve(result);
+             } catch (parseError) {
+               console.error('❌ Failed to parse yt-dlp JSON output:', parseError.message);
+               reject(new Error(`Failed to parse yt-dlp output: ${parseError.message}`));
+             }
+           } else {
+             console.error(`❌ yt-dlp process exited with code ${code}`);
+             console.error('❌ stderr:', stderr);
+             reject(new Error(`yt-dlp failed with exit code ${code}: ${stderr}`));
+           }
+         });
+         
+         ytdlp.on('error', (error) => {
+           console.error('❌ Failed to spawn yt-dlp process:', error.message);
+           if (error.code === 'ENOENT') {
+             reject(new Error(`yt-dlp executable not found at path: ${ytdlpPath}. Please ensure yt-dlp is installed and accessible.`));
+           } else {
+             reject(error);
+           }
+         });
+         
+         setTimeout(() => {
+           ytdlp.kill();
+           reject(new Error('yt-dlp execution timeout'));
+         }, 30000); // 30 seconds timeout
+       });
+      } catch (error) {
+        console.error('❌ Failed to resolve yt-dlp path:', error.message);
+        throw error;
+      }
+    }
+  
+  /**
+   * Get video information using yt-dlp (Cross-platform)
+   */
+  async getVideoInfo(url, options = {}) {
+    try {
+      console.log('🔍 Getting video info for:', url);
+      
+      const defaultOptions = {
+        dumpSingleJson: true,
+        noCheckCertificates: true,
+        noWarnings: true,
+        retries: 3,
+        sleepInterval: 1,
+        addHeader: [
+          'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        ]
+      };
+      
+      const mergedOptions = { ...defaultOptions, ...options };
+      
+      // Try direct yt-dlp execution first
+      try {
+        const result = await this.executeDirectYtDlp(url, mergedOptions);
+        return result;
+      } catch (directError) {
+        console.error('❌ Direct yt-dlp failed:', directError.message);
+        throw directError;
+      }
+    } catch (error) {
+      console.error('❌ Error getting video info:', error.message);
+      throw error;
+    }
+  }
+  
+  /**
+   * Download video using yt-dlp (Cross-platform)
+   */
+  async downloadVideo(url, outputPath, options = {}) {
+    try {
+      console.log('📥 Downloading video:', url);
+      console.log('📁 Output path:', outputPath);
+      
+      const defaultOptions = {
+        output: outputPath,
+        format: 'best[ext=mp4]/best',
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        retries: 3,
+        sleepInterval: 1,
+        addHeader: [
+          'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        ]
+      };
+      
+      const mergedOptions = { ...defaultOptions, ...options };
+      
+      // Use streaming method for downloads
+      const stream = await this.executeDirectYtDlpStream(url, mergedOptions);
+      return stream;
+    } catch (error) {
+      console.error('❌ Error downloading video:', error.message);
+      throw error;
+    }
+  }
+}
+
+module.exports = YtDlpManager;
 
   /**
    * Get appropriate format string for each platform
