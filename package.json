@@ -9,6 +9,7 @@
     "render": "node server-render.js",
     "test": "node -e \"console.log('Server test passed')\"",
     "test-cookies": "node test-cookies.js",
+    "test-youtube-cookies": "node test-youtube-cookies.js",
     "postinstall": "echo 'Dependencies installed successfully for Render.com'"
   },
   "engines": {
