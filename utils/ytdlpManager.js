@@ -307,8 +307,7 @@ class YtDlpManager {
         // Add headers (properly quoted for command line)
         if (options.addHeader && Array.isArray(options.addHeader)) {
           options.addHeader.forEach(header => {
-            args.push('--add-header');
-            args.push(header);
+            args.push('--add-header', header);
           });
         }
         
@@ -370,7 +369,9 @@ class YtDlpManager {
         process.env.HOME + '/.local/bin/yt-dlp',
         '/opt/render/.local/bin/yt-dlp',
         '/home/render/.local/bin/yt-dlp',
+        process.env.HOME + '/.yt-dlp-venv/bin/yt-dlp', // Virtual environment path
         '/usr/local/bin/yt-dlp',
+        '/usr/bin/yt-dlp', // System package path
         'yt-dlp'
       ];
     } else if (process.env.REPLIT) {
@@ -446,14 +447,97 @@ class YtDlpManager {
   
   /**
    * Dynamic yt-dlp installation for Render.com
+   * Uses multiple strategies to handle externally-managed environments
    */
   async installYtDlpDynamically() {
     const { spawn } = require('child_process');
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Strategy 1: Try pipx first (recommended for externally-managed environments)
+    try {
+      console.log('📦 Attempting yt-dlp installation via pipx...');
+      await this.runInstallCommand('pipx', ['install', 'yt-dlp']);
+      
+      // Check if pipx installed yt-dlp is accessible
+      const pipxPath = process.env.HOME + '/.local/bin/yt-dlp';
+      if (fs.existsSync(pipxPath)) {
+        console.log('✅ yt-dlp installed successfully via pipx');
+        return;
+      }
+    } catch (error) {
+      console.log('⚠️ pipx installation failed, trying virtual environment...');
+    }
+    
+    // Strategy 2: Create virtual environment and install yt-dlp
+    try {
+      console.log('📦 Creating virtual environment for yt-dlp...');
+      const venvPath = path.join(process.env.HOME || '/tmp', '.yt-dlp-venv');
+      
+      // Create virtual environment
+      await this.runInstallCommand('python3', ['-m', 'venv', venvPath]);
+      
+      // Install yt-dlp in virtual environment
+      const venvPip = path.join(venvPath, 'bin', 'pip');
+      await this.runInstallCommand(venvPip, ['install', '--upgrade', 'yt-dlp']);
+      
+      // Create symlink to make yt-dlp accessible
+      const venvYtDlp = path.join(venvPath, 'bin', 'yt-dlp');
+      const localBinDir = path.join(process.env.HOME, '.local', 'bin');
+      const localYtDlp = path.join(localBinDir, 'yt-dlp');
+      
+      // Ensure .local/bin directory exists
+      if (!fs.existsSync(localBinDir)) {
+        fs.mkdirSync(localBinDir, { recursive: true });
+      }
+      
+      // Create symlink
+      if (fs.existsSync(venvYtDlp)) {
+        if (fs.existsSync(localYtDlp)) {
+          fs.unlinkSync(localYtDlp);
+        }
+        fs.symlinkSync(venvYtDlp, localYtDlp);
+        console.log('✅ yt-dlp installed successfully via virtual environment');
+        return;
+      }
+    } catch (error) {
+      console.log('⚠️ Virtual environment installation failed, trying system packages...');
+    }
+    
+    // Strategy 3: Try system package manager
+    try {
+      console.log('📦 Attempting system package installation...');
+      await this.runInstallCommand('apt', ['update'], { timeout: 30000 });
+      await this.runInstallCommand('apt', ['install', '-y', 'yt-dlp'], { timeout: 120000 });
+      console.log('✅ yt-dlp installed successfully via apt');
+      return;
+    } catch (error) {
+      console.log('⚠️ System package installation failed');
+    }
+    
+    // Strategy 4: Last resort - try with --break-system-packages (not recommended)
+    try {
+      console.log('📦 Last resort: attempting pip with --break-system-packages...');
+      await this.runInstallCommand('python3', ['-m', 'pip', 'install', '--user', '--upgrade', '--break-system-packages', 'yt-dlp']);
+      console.log('✅ yt-dlp installed successfully with --break-system-packages');
+      return;
+    } catch (error) {
+      console.error('❌ All installation strategies failed');
+      throw new Error('Failed to install yt-dlp using any available method');
+    }
+  }
+  
+  /**
+   * Helper method to run installation commands
+   */
+  async runInstallCommand(command, args, options = {}) {
+    const { spawn } = require('child_process');
+    const timeout = options.timeout || 60000;
     
     return new Promise((resolve, reject) => {
-      console.log('📦 Installing yt-dlp dynamically...');
+      console.log(`🔧 Running: ${command} ${args.join(' ')}`);
       
-      const installProcess = spawn('python3', ['-m', 'pip', 'install', '--user', '--upgrade', 'yt-dlp'], {
+      const installProcess = spawn(command, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false
       });
@@ -471,23 +555,20 @@ class YtDlpManager {
       
       installProcess.on('close', (code) => {
         if (code === 0) {
-          console.log('✅ yt-dlp installed successfully');
-          resolve();
+          resolve({ stdout, stderr });
         } else {
-          console.error('❌ yt-dlp installation failed:', stderr);
-          reject(new Error(`Installation failed with code ${code}: ${stderr}`));
+          reject(new Error(`Command failed with code ${code}: ${stderr}`));
         }
       });
       
       installProcess.on('error', (error) => {
-        console.error('❌ Installation process error:', error.message);
         reject(error);
       });
       
       setTimeout(() => {
         installProcess.kill();
-        reject(new Error('Installation timeout'));
-      }, 60000); // 1 minute timeout
+        reject(new Error('Command timeout'));
+      }, timeout);
     });
   }
   
@@ -517,11 +598,12 @@ class YtDlpManager {
           });
         }
         
-        console.log('🚀 Executing yt-dlp:', ytdlpPath, args.slice(0, 3).join(' '), '...');
+        console.log('🚀 Executing yt-dlp:', ytdlpPath);
+        console.log('🔧 Arguments:', args);
         
         const ytdlp = spawn(ytdlpPath, args, {
            stdio: ['ignore', 'pipe', 'pipe'],
-           shell: process.platform === 'win32'
+           shell: false // Don't use shell to avoid argument parsing issues
          });
          
          let stdout = '';
