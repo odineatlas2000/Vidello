@@ -240,12 +240,17 @@ class YtDlpManager {
    * Get appropriate headers for each platform
    */
   getHeadersForPlatform(platform) {
+    // Temporarily disable complex headers for Twitter to avoid parsing issues
+    if (platform === 'twitter') {
+      return [];
+    }
+    
     const commonHeaders = [
-      'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'sec-fetch-dest:document',
-      'sec-fetch-mode:navigate',
-      'sec-fetch-site:none'
+      'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Sec-Fetch-Dest:document',
+      'Sec-Fetch-Mode:navigate',
+      'Sec-Fetch-Site:none'
     ];
 
     switch (platform) {
@@ -321,7 +326,8 @@ class YtDlpManager {
       
       try {
         const ytdlpProcess = spawn(ytdlpPath, args, {
-          stdio: ['ignore', 'pipe', 'pipe']
+          stdio: ['ignore', 'pipe', 'pipe'],
+          shell: process.platform === 'win32' // Use shell on Windows for better compatibility
         });
         
         ytdlpProcess.on('error', (error) => {
