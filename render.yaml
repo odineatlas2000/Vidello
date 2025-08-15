@@ -6,9 +6,12 @@ services:
     name: video-downloader
     env: node
     plan: free  # Change to 'starter' or higher for production
-    buildCommand: npm install
+    buildCommand: |
+      echo "Installing Node.js dependencies..."
+      npm install
+      echo "Node.js dependencies installed successfully"
     startCommand: npm start
-    # Explicitly disable Python builds
+    # Explicitly disable Python builds to avoid conflicts
     buildFilter:
       ignoredPaths:
         - "**/*.py"
@@ -16,6 +19,8 @@ services:
         - "**/pyproject.toml"
         - "**/poetry.lock"
         - "python_deps/**"
+        - "setup-replit*.sh"
+        - "replit*.nix"
     envVars:
       - key: NODE_ENV
         value: production
@@ -43,18 +48,14 @@ services:
         - "!*.backup"
         - "!.git/**"
     
-    # Environment detection and yt-dlp installation
+    # Environment setup for Node.js application
     preDeployCommand: |
-      echo "Setting up environment for Render.com..."
-      export PATH="$HOME/.local/bin:$PATH"
-      echo "PATH updated: $PATH"
-      echo "Note: yt-dlp will be installed dynamically by the application if needed"
-      # Check if yt-dlp is already available
-      if command -v yt-dlp >/dev/null 2>&1; then
-        echo "✅ yt-dlp already available: $(yt-dlp --version)"
-      else
-        echo "ℹ️ yt-dlp not found - will be installed dynamically by the application"
-      fi
+      echo "Setting up Node.js environment for Render.com..."
+      echo "Node.js version: $(node --version)"
+      echo "NPM version: $(npm --version)"
+      echo "Environment: $NODE_ENV"
+      echo "Note: This is a Node.js-only deployment. yt-dlp will be handled by yt-dlp-exec package."
+      echo "✅ Environment setup completed"
     
     # Disk storage (for temporary files)
     disk:
