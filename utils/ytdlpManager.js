@@ -134,11 +134,53 @@ class YtDlpManager {
   /**
    * Find and validate cookie file for a specific platform
    */
+  /**
+   * Create cookie file from environment variable if needed
+   */
+  createCookieFromEnv(platform) {
+    try {
+      const envVarName = `${platform.toUpperCase()}_COOKIES`;
+      const cookiesContent = process.env[envVarName];
+      
+      if (cookiesContent && (process.env.RENDER || process.env.VERCEL || process.env.RAILWAY)) {
+        const cookiesDir = path.join(__dirname, '..', 'cookies');
+        const cookieFile = path.join(cookiesDir, `${platform}.txt`);
+        
+        // Create cookies directory if it doesn't exist
+        if (!fs.existsSync(cookiesDir)) {
+          fs.mkdirSync(cookiesDir, { recursive: true });
+          console.log(`📁 Created cookies directory: ${cookiesDir}`);
+        }
+        
+        // Convert escaped newlines to actual newlines
+        const formattedContent = cookiesContent.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        
+        // Write cookie file
+        fs.writeFileSync(cookieFile, formattedContent, 'utf8');
+        console.log(`🍪 Created cookie file from environment variable for ${platform}: ${cookieFile}`);
+        
+        return cookieFile;
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error creating cookie file from environment for ${platform}:`, error.message);
+    }
+    return null;
+  }
+
   getCookieFile(platform) {
     try {
       const cookiesDir = path.join(__dirname, '..', 'cookies');
       const cookieFile = path.join(cookiesDir, `${platform}.txt`);
       
+      // First, try to create from environment variable if in cloud environment
+      if (process.env.RENDER || process.env.VERCEL || process.env.RAILWAY) {
+        const envCookieFile = this.createCookieFromEnv(platform);
+        if (envCookieFile) {
+          return envCookieFile;
+        }
+      }
+      
+      // Then check if local cookie file exists
       if (fs.existsSync(cookieFile)) {
         const stats = fs.statSync(cookieFile);
         if (stats.size > 0) {
