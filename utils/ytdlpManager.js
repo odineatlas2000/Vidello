@@ -214,14 +214,26 @@ class YtDlpManager {
       if (this.ytDlpExec && !this.useDirectYtDlp) {
         try {
           console.log('🎬 Using yt-dlp-exec for video info');
-          const info = await this.ytDlpExec(url, {
+          
+          // Get cookie file for the platform
+          const cookieFile = this.getCookieFile(platform);
+          
+          const options = {
             dumpSingleJson: true,
             noCheckCertificates: true,
             noWarnings: true,
             addHeader: this.getHeadersForPlatform(platform),
             retries: 3,
             sleepInterval: 1
-          });
+          };
+          
+          // Add cookie file if available
+          if (cookieFile) {
+            options.cookies = cookieFile;
+            console.log(`🍪 Using cookies for ${platform} authentication`);
+          }
+          
+          const info = await this.ytDlpExec(url, options);
           return this.formatYtDlpInfo(info);
         } catch (ytDlpExecError) {
           console.warn('⚠️ yt-dlp-exec failed:', ytDlpExecError.message);
